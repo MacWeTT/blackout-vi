@@ -19,6 +19,17 @@
       .trim()
       .toLowerCase();
 
+  // A real channel name, not a stat that sits beside it in the tile ("194K views", "3 hours ago", "12:30").
+  const isChannelName = text => {
+    const value = String(text || '').trim();
+
+    if (!value || /^\d[\d.,:]*\s*[kmb]?(\s|$)/i.test(value)) {
+      return false;
+    }
+
+    return !/\b(views?|watching|ago|subscribers?|likes?|streamed|premiered)\b/i.test(value);
+  };
+
   // Entry key used for storage: the channel's own key, or its lowercased name when the tile showed no link.
   const entryKey = ref => ref.key || (ref.name ? 'name:' + lower(ref.name) : '');
 
@@ -37,7 +48,11 @@
     for (const [key, name] of Object.entries(entries)) {
       if (!disabled[key]) {
         keys.add(key);
-        names.add(lower(name));
+
+        // a name that looks like a stat must never match other tiles
+        if (isChannelName(name)) {
+          names.add(lower(name));
+        }
       }
     }
 
@@ -50,7 +65,9 @@
       return false;
     }
 
-    return (ref.key && trust.keys.has(ref.key)) || (ref.name && trust.names.has(lower(ref.name)));
+    return Boolean(
+      (ref.key && trust.keys.has(ref.key)) || (isChannelName(ref.name) && trust.names.has(lower(ref.name))),
+    );
   };
 
   // Reads the subscriptions page (/feed/channels): its ytInitialData holds one channelRenderer per channel.
@@ -126,6 +143,7 @@
     ...globalThis.GV,
     channelKeyFromHref,
     entryKey,
+    isChannelName,
     buildTrust,
     isTrusted,
     keepsStoryHidden,

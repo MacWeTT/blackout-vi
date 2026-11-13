@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "Hides GTA VI story and gameplay spoilers on YouTube before they ever paint.",
   "permissions": ["storage"],
+  "host_permissions": ["https://www.youtube.com/*"],
   "action": {
     "default_popup": "src/popup/popup.html",
     "default_title": "GTA VI Spoiler Shield",

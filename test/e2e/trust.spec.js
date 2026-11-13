@@ -119,18 +119,28 @@ test.describe('trust badge on the card', () => {
   });
 });
 
-test('Sync now reads the subscriptions page and lists the channels in the popup', async ({
-  context,
-  extensionId,
-  openFixture,
-}) => {
+test('a stat beside the channel is never used as its name', async ({ openFixture }) => {
   const page = await openFixture();
+
+  await page.evaluate(() => {
+    const tile = document.createElement('ytd-rich-item-renderer');
+
+    // like a home-feed lockup: an avatar link with no text, then "194K views" and the age as the first spans
+    tile.innerHTML =
+      '<a href="/@rockstargames"><img alt=""></a><div>GTA 6 gameplay first hour</div>' +
+      '<yt-content-metadata-view-model><span>194K views</span><span>2 days ago</span></yt-content-metadata-view-model>';
+    document.getElementById('feed').append(tile);
+  });
+  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect(page.locator('.gv-card__trust')).toHaveAttribute('data-name', '@rockstargames');
+});
+
+test('Sync now works from the popup alone, with no YouTube tab open', async ({ context, extensionId }) => {
   const popup = await context.newPage();
 
   await popup.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
   await popup.click('#manage');
   await popup.click('#sync');
-  await expect(page.locator('html')).toBeAttached();
   await expect(popup.locator('.channel__name')).toHaveText(['Digital Foundry', 'Rockstar Games'], { timeout: 8000 });
   await expect(popup.locator('#syncTitle')).toContainText('Synced');
   await expect(popup.locator('.channel__tag').first()).toHaveText('subscribed');

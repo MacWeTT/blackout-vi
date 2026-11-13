@@ -18,7 +18,6 @@
   const LEVELS = ['all', 'news', 'story', 'off'];
   const LABELS = { story: 'Story spoiler', gameplay: 'Gameplay spoiler', news: 'GTA VI news' };
   const KEY = 'gv_settings';
-  const LOGO = 'assets/images/gta-vi-logo.png';
   const root = document.documentElement;
 
   // localStorage is a synchronous cache so the right level applies before chrome.storage answers.
@@ -108,12 +107,15 @@
     const key = link ? GV.channelKeyFromHref(link.getAttribute('href')) : '';
     let name = '';
 
-    // the first match can be an empty placeholder, so take the first one that has text
-    for (const node of element.querySelectorAll(CHANNEL_NAME)) {
-      // textContent, not innerText: a blocked tile's children are visibility:hidden and innerText skips them
-      name = node.textContent.split('\n').map(clean).find(Boolean) || '';
+    // The channel link's own text first, then name elements. Skip empty placeholders and stats that sit beside
+    // the name ("194K views"). textContent, not innerText: a blocked tile's children are visibility:hidden.
+    const candidates = [...element.querySelectorAll(CHANNEL_LINK), ...element.querySelectorAll(CHANNEL_NAME)];
 
-      if (name) {
+    for (const node of candidates) {
+      const text = node.textContent.split('\n').map(clean).find(GV.isChannelName) || '';
+
+      if (text) {
+        name = text;
         break;
       }
     }
@@ -148,7 +150,7 @@
     if (!card) {
       card = document.createElement('div');
       card.className = 'gv-card';
-      card.innerHTML = `<img class="gv-card__logo" src="${chrome.runtime.getURL(LOGO)}" alt=""><span class="gv-card__kind"></span><span class="gv-card__hint"></span><span class="gv-card__trust"></span>`;
+      card.innerHTML = `<span class="gv-card__logo"></span><span class="gv-card__kind"></span><span class="gv-card__hint"></span><span class="gv-card__trust"></span>`;
       element.append(card);
     }
 
@@ -292,7 +294,7 @@
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.id = 'gv-overlay';
-      overlay.innerHTML = `<div class="gv-box"><img class="gv-logo" src="${chrome.runtime.getURL(LOGO)}" alt=""><div class="gv-t"></div><button>Reveal</button></div>`;
+      overlay.innerHTML = `<div class="gv-box"><span class="gv-logo"></span><div class="gv-t"></div><button>Reveal</button></div>`;
       sizer.observe(overlay);
       overlay.querySelector('button').onclick = handleReveal;
     }
@@ -597,11 +599,7 @@
     }
   };
 
-  const handleStorageChange = (changes, area) => {
-    if (area === 'local' && changes.syncRequest) {
-      syncSubscriptions();
-    }
-
+  const handleStorageChange = () => {
     load();
   };
 

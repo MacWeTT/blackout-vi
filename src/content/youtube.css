@@ -98,7 +98,9 @@
   display: none;
 }
 .gv-card__logo {
+  width: calc(var(--gv-logo) * 1.4);
   height: var(--gv-logo);
+  background: url('chrome-extension://__MSG_@@extension_id__/assets/images/gta-vi-logo.png') center / contain no-repeat;
   filter: drop-shadow(0 2px 8px rgba(20, 0, 40, 0.6));
 }
 .gv-card__kind::before {
@@ -152,7 +154,9 @@ ytd-watch-flexy #player {
   gap: var(--gv-gap);
 }
 #gv-overlay .gv-logo {
+  width: calc(var(--gv-logo) * 1.4);
   height: var(--gv-logo);
+  background: url('chrome-extension://__MSG_@@extension_id__/assets/images/gta-vi-logo.png') center / contain no-repeat;
 }
 #gv-overlay button {
   margin-top: 0;

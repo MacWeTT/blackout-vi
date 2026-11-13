@@ -168,7 +168,7 @@ test('the card names the kind of spoiler and shows the logo', async ({ openFixtu
 
       return {
         kind: tile.querySelector('.gv-card__kind').dataset.kind,
-        logo: tile.querySelector('.gv-card__logo').src,
+        logo: getComputedStyle(tile.querySelector('.gv-card__logo')).backgroundImage,
       };
     }, i);
 
@@ -195,4 +195,36 @@ test('the card names the kind of spoiler and shows the logo', async ({ openFixtu
 
   expect(fonts[0]).toBeLessThan(fonts[1]);
   expect(fonts[1]).toBeLessThan(fonts[2]);
+});
+
+test('the card logo and background actually load from the extension', async ({ openFixture }) => {
+  const page = await openFixture();
+  const errors = [];
+
+  page.on('console', message => {
+    if (message.type() === 'error') {
+      errors.push(message.text());
+    }
+  });
+
+  await addTile(page, TAG, 'GTA 6 ending explained');
+  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  const logo = await page.evaluate(async () => {
+    const image = getComputedStyle(document.querySelector('.gv-card__logo')).backgroundImage;
+    const response = await fetch(image.match(/url\("?([^")]+)"?\)/)[1]);
+
+    return response.ok;
+  });
+
+  expect(logo).toBe(true);
+
+  const background = await page.evaluate(async () => {
+    const url = getComputedStyle(document.querySelector('.gv-card')).backgroundImage.match(/url\("?([^")]+)"?\)/)[1];
+    const response = await fetch(url);
+
+    return response.ok;
+  });
+
+  expect(background).toBe(true);
+  expect(errors.filter(text => /Unsafe attempt to load URL/.test(text))).toEqual([]);
 });

@@ -3,7 +3,7 @@ const assert = require('assert');
 require('../src/core/wordlists.js');
 require('../src/core/classifier.js');
 require('../src/core/trust.js');
-const { channelKeyFromHref, entryKey, buildTrust, isTrusted, parseSubscriptions } = globalThis.GV;
+const { channelKeyFromHref, isChannelName, entryKey, buildTrust, isTrusted, parseSubscriptions } = globalThis.GV;
 
 // channel keys from links
 assert.strictEqual(channelKeyFromHref('/@DigitalFoundry'), '@digitalfoundry');
@@ -12,6 +12,18 @@ assert.strictEqual(channelKeyFromHref('/channel/UC123abc'), 'UC123abc');
 assert.strictEqual(channelKeyFromHref('/watch?v=abc'), '');
 assert.strictEqual(channelKeyFromHref(''), '');
 assert.strictEqual(channelKeyFromHref(null), '');
+
+// stats beside a channel are not names
+for (const stat of ['194K views', '194k', '3 hours ago', '12:30', '1.2M watching', '42 subscribers', '']) {
+  assert.ok(!isChannelName(stat), stat);
+}
+
+for (const name of ['Rockstar Games', 'Digital Foundry', 'TGG', 'Dattrax Plays']) {
+  assert.ok(isChannelName(name), name);
+}
+
+// a stat-like name saved by mistake never matches other tiles
+assert.ok(!isTrusted(buildTrust({ trusted: { '@x': '194k' }, subsMode: 'same' }), { key: '', name: '194k' }));
 
 // entry keys: the link key, else the lowercased name
 assert.strictEqual(entryKey({ key: '@x', name: 'X' }), '@x');

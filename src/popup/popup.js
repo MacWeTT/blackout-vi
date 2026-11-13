@@ -97,7 +97,7 @@ const renderChannels = () => {
 
   $('syncTitle').textContent = state.syncedAt ? `Synced ${ago(state.syncedAt)}` : 'Not synced yet';
   $('syncDetail').textContent =
-    state.syncError || `${count} channels from your subscriptions. Syncs through an open YouTube tab.`;
+    state.syncError || `${count} channels from your subscriptions. Syncs from your YouTube account.`;
 };
 
 const render = () => {
@@ -137,9 +137,26 @@ const showView = channels => {
   $('channels').hidden = !channels;
 };
 
-const handleSync = () => {
+// The popup reads the subscriptions page itself (host permission), so no open YouTube tab is needed.
+const handleSync = async () => {
   $('syncTitle').textContent = 'Syncing…';
-  chrome.storage.local.set({ syncRequest: Date.now() });
+
+  try {
+    const response = await fetch('https://www.youtube.com/feed/channels', { credentials: 'include' });
+    const list = GV.parseSubscriptions(await response.text());
+
+    if (!list.length) {
+      chrome.storage.local.set({ syncError: 'No subscriptions found. Are you signed in to YouTube?' });
+
+      return;
+    }
+
+    const subs = Object.fromEntries(list.map(item => [item.key, item.name]));
+
+    chrome.storage.local.set({ subs, syncedAt: Date.now(), syncError: '' });
+  } catch {
+    chrome.storage.local.set({ syncError: 'Could not read your subscriptions. Check your connection.' });
+  }
 };
 
 const refresh = () => {
