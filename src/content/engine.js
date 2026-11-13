@@ -137,18 +137,17 @@
 
     // The card is a real element so its text can have a hierarchy; its words come from CSS (data-kind),
     // so they never become part of the tile's own text and never feed back into the classifier.
-    const showCard = (element, label, channel, trusted, why = '') => {
+    const showCard = (element, label, channel, trusted) => {
       let card = element.querySelector(':scope > .gv-card');
 
       if (!card) {
         card = document.createElement('div');
         card.className = 'gv-card';
-        card.innerHTML = `<span class="gv-card__logo"></span><span class="gv-card__kind"></span><span class="gv-card__hint"></span><span class="gv-card__why"></span><span class="gv-card__trust"></span>`;
+        card.innerHTML = `<span class="gv-card__logo"></span><span class="gv-card__kind"></span><span class="gv-card__hint"></span><span class="gv-card__trust"></span>`;
         element.append(card);
       }
 
       card.querySelector('.gv-card__kind').dataset.kind = label;
-      card.querySelector('.gv-card__why').dataset.why = why;
 
       // the badge only appears when we can say who this is
       const badge = card.querySelector('.gv-card__trust');
@@ -205,7 +204,6 @@
         element.removeAttribute('data-gv-shown');
         element.removeAttribute('data-gv-comment');
         element.removeAttribute('data-gv-bodied');
-        element.removeAttribute('data-gv-why');
         sizer.unobserve(element);
         hideCard(element);
         delete element.__gvSig;
@@ -216,7 +214,6 @@
       if (blocked) {
         element.setAttribute('data-gv-blocked', '');
         element.setAttribute('data-gv-label', info.label);
-        element.setAttribute('data-gv-why', info.why || '');
         element.removeAttribute('data-gv-ok');
         element.toggleAttribute('data-gv-comment', Boolean(info.comment) && !info.body);
         element.toggleAttribute('data-gv-bodied', Boolean(info.comment) && Boolean(info.body));
@@ -225,7 +222,7 @@
           showStrip(element, info.strip, info.body);
         } else {
           sizer.observe(element);
-          showCard(element, info.label, info.channel, info.trusted, info.why);
+          showCard(element, info.label, info.channel, info.trusted);
         }
 
         for (const video of element.querySelectorAll('video')) {
@@ -241,7 +238,6 @@
       element.removeAttribute('data-gv-shown');
       element.removeAttribute('data-gv-comment');
       element.removeAttribute('data-gv-bodied');
-      element.removeAttribute('data-gv-why');
       sizer.unobserve(element);
       hideCard(element);
       resumeIn(element);
@@ -295,8 +291,7 @@
         result.bucket === 'content' ? KIND_LABELS[result.kind] || LABELS.content : LABELS[result.bucket];
       const label = forced || kindLabel;
       const body = comment ? hooks.bodyOf?.(element) || null : null;
-      const why = forced ? '' : result.why || '';
-      const info = { label, strip: forced || STRIP_LABELS[result.bucket], channel, trusted, comment, body, why };
+      const info = { label, strip: forced || STRIP_LABELS[result.bucket], channel, trusted, comment, body };
 
       // a revealed tile keeps its reveal while it stays blocked
       if (blocked && element.hasAttribute('data-gv-blocked')) {
@@ -306,7 +301,7 @@
           if (comment) {
             showStrip(element, info.strip, body);
           } else {
-            showCard(element, info.label, channel, trusted, why);
+            showCard(element, info.label, channel, trusted);
           }
         }
       } else {

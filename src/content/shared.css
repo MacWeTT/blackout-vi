@@ -191,20 +191,3 @@
 :root:not([data-gv-everything]) [data-gv-body] {
   display: none !important;
 }
-
-/* The word or rule that flagged the post, so a surprising flag explains itself. Hidden when there is none. */
-.gv-card__why::before {
-  content: 'because ' attr(data-why);
-  max-width: 90%;
-  overflow: hidden;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: max(10px, calc(var(--gv-font) * 0.7));
-  font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gv-card__why[data-why=''],
-[data-gv-small] .gv-card__why {
-  display: none;
-}

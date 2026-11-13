@@ -30,7 +30,7 @@ unprotected, refresh it.
   _Same rules_, _Gameplay_ (story spoilers stay hidden) or _Everything_. Nothing is trusted until you add it, from the
   Trust badge on a cover card or from the list.
 - **Reddit** also has two switches: _Block GTA / GTA VI subs_ and _Block gaming subs_, so you can scroll Reddit freely.
-- A hidden card says what it is (trailer, music, news, details, review, story spoiler) and **why** ("because …").
+- A hidden card says what it is (trailer, music, news, details, review, story spoiler).
 
 ## Limits
 

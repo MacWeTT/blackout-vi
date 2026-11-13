@@ -1,5 +1,4 @@
 // Pure and synchronous: it runs inside a MutationObserver callback, before paint.
-// A story or gameplay result carries `why`: the word or rule that flagged it, so a surprising flag can be explained at a glance.
 (() => {
   const WORDS = globalThis.GV_WORDS;
 
@@ -9,22 +8,9 @@
     });
   };
 
-  // the text a pattern matched, or ''
-  const firstMatch = (list, text) => {
-    for (const pattern of list) {
-      const hit = pattern.exec(text);
-
-      if (hit) {
-        return hit[0];
-      }
-    }
-
-    return '';
-  };
-
   // A death or sacrifice word is a story spoiler only when a word about a character is within four words of it.
   // "Jason sacrifices his life" counts; "sacrifice NPC car numbers" does not. See WORDS.weak.
-  // Returns why it flagged, or '' when it did not.
+  // Returns true when it flagged.
   const weakStory = text => {
     const { strict, loose, subjects, pronouns, ignore, leak, leak_hardware: hardware } = WORDS.weak;
     let cleaned = text;
@@ -49,7 +35,7 @@
             return hardware.includes(word);
           })
         ) {
-          return `"${tokens[i]}" next to "${about}"`;
+          return true;
         }
       }
 
@@ -61,19 +47,17 @@
 
       for (let j = Math.max(0, i - 4); j <= Math.min(tokens.length - 1, i + 4); j++) {
         if (j !== i && (subjects.includes(tokens[j]) || (isStrict && pronouns.includes(tokens[j])))) {
-          return `"${tokens[i]}" next to "${tokens[j]}"`;
+          return true;
         }
       }
     }
 
-    return '';
+    return false;
   };
 
-  // why a text counts as story in normal mode: a plain story word, a strong phrase, or a weak word next to a character
-  const storyReason = text => {
-    const hit = firstMatch(WORDS.story, text) || firstMatch(WORDS.generic, text);
-
-    return hit ? `"${hit}"` : weakStory(text);
+  // whether a text counts as story in normal mode: a plain story word, a strong phrase, or a weak word next to a character
+  const isStory = text => {
+    return matchesAny(WORDS.story, text) || matchesAny(WORDS.generic, text) || weakStory(text);
   };
 
   // 'music' | 'trailer' | 'news' | 'details' | 'review' | 'content' (anything else): names the card, nothing more
@@ -95,30 +79,20 @@
     const { strict, loose, leak } = WORDS.weak;
 
     if (!gta && !matchesAny(about, text)) {
-      const phrase = firstMatch(WORDS.generic, text);
-
-      return phrase ? { gta: false, bucket: 'story', why: `phrase "${phrase}"` } : { gta: false, bucket: null };
+      return matchesAny(WORDS.generic, text) ? { gta: false, bucket: 'story' } : { gta: false, bucket: null };
     }
 
     const tokens = text.match(/[a-z0-9]+/g) || [];
-    const word = tokens.find(token => {
+    const suspicious = tokens.some(token => {
       return words.includes(token) || strict.includes(token) || loose.includes(token) || leak.words.includes(token);
     });
 
-    if (word) {
-      return { gta: true, bucket: 'story', why: `panic: "${word}"` };
+    if (suspicious || matchesAny(WORDS.panic.phrases, text) || isStory(text)) {
+      return { gta: true, bucket: 'story' };
     }
 
-    const why = firstMatch(WORDS.panic.phrases, text) || storyReason(text).replace(/^"|"$/g, '');
-
-    if (why) {
-      return { gta: true, bucket: 'story', why: `panic: ${why}` };
-    }
-
-    const played = firstMatch(WORDS.gameplay, text);
-
-    if (played) {
-      return { gta: true, bucket: 'gameplay', why: `"${played}"` };
+    if (matchesAny(WORDS.gameplay, text)) {
+      return { gta: true, bucket: 'gameplay' };
     }
 
     return { gta: true, bucket: 'content', kind: kindOf(text) };
@@ -134,10 +108,8 @@
       .toLowerCase()
       .replace(/(\d)(?=[a-z])/g, '$1 ');
 
-    const name = firstMatch(WORDS.names, normalized);
-
-    if (name) {
-      return { gta: true, bucket: 'story', why: `character: "${name}"` };
+    if (matchesAny(WORDS.names, normalized)) {
+      return { gta: true, bucket: 'story' };
     }
 
     const gta = assumeGta || matchesAny(WORDS.gta, normalized);
@@ -151,16 +123,12 @@
       return { gta: false, bucket: null };
     }
 
-    const why = storyReason(normalized);
-
-    if (why) {
-      return { gta: true, bucket: 'story', why };
+    if (isStory(normalized)) {
+      return { gta: true, bucket: 'story' };
     }
 
-    const played = firstMatch(WORDS.gameplay, normalized);
-
-    if (played) {
-      return { gta: true, bucket: 'gameplay', why: `"${played}"` };
+    if (matchesAny(WORDS.gameplay, normalized)) {
+      return { gta: true, bucket: 'gameplay' };
     }
 
     return { gta: true, bucket: 'content', kind: kindOf(normalized) };
