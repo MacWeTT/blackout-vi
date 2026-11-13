@@ -1,3 +1,4 @@
+const LEVEL_NAMES = { all: 'Nothing', news: 'News only', story: 'No story', off: 'Everything' };
 const DESCRIPTIONS = {
   all: 'Hides every GTA VI post, video and comment.',
   news: 'Shows only news, trailers, release info, score and OST. Hides story and gameplay.',
@@ -10,7 +11,14 @@ const MODE_DESCRIPTIONS = {
   all: 'Ones you trust skip the shield completely, spoilers included.',
 };
 
-// What differs per site: the trusted list and its mode (synced), the pick-list and pictures (local).
+// Per-app rules. Reddit has no trusted list: it only gets its own level and panic switch.
+const APPS = {
+  youtube: { label: 'YouTube', icon: '../../assets/brands/youtube.svg' },
+  x: { label: 'X', icon: '../../assets/brands/x.svg' },
+  reddit: { label: 'Reddit', icon: '../../assets/brands/reddit.svg' },
+};
+
+// What differs per trusted list: its mode (synced), the pick-list and pictures (local).
 const SITES = {
   youtube: {
     label: 'YouTube',
@@ -60,13 +68,13 @@ let state = {
   syncedAt: 0,
   xSyncedAt: 0,
   syncError: '',
-  tab: 'youtube', // the site tab being edited while global settings are off
-  manage: null, // the site whose trusted list is open, or null for the main screen
+  view: 'rules', // 'rules' | 'trusted' | 'settings'
+  trustSite: 'youtube',
 };
 
-// level and panic: the shared value, or this site's own when global settings are off
-const current = () => {
-  const own = state.global ? {} : state.sites[state.tab] || {};
+// an app's own level and panic when global settings are off, otherwise the shared ones
+const ruleOf = app => {
+  const own = state.sites[app] || {};
 
   return { level: own.level ?? state.level, panic: own.panic ?? state.panic };
 };
@@ -103,67 +111,110 @@ const ago = time => {
   return minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
 };
 
-const openManage = site => {
-  state.manage = site;
-  $('search').value = '';
-  render();
+const setActive = (buttons, isOn) => {
+  buttons.forEach(button => {
+    button.classList.toggle('levels__button--on', isOn(button));
+  });
 };
 
-const renderMain = () => {
-  const { level, panic } = current();
-  const shown = state.global
-    ? ['youtube', 'x']
-    : [state.tab].filter(tab => {
-        return SITES[tab];
-      });
+const renderRules = () => {
+  $('scopeChip').textContent = state.global ? 'All sites' : 'Per app';
+  $('globalRules').hidden = !state.global;
+  $('appSummary').hidden = state.global;
 
-  $('global').checked = state.global;
-  $('globalHint').textContent = state.global
-    ? 'The same rules on YouTube, X and Reddit'
-    : 'Each site has its own rules. Pick a site below.';
-  $('sites').hidden = state.global;
-  $('desc').textContent = DESCRIPTIONS[level];
-  $('panic').checked = panic;
+  if (state.global) {
+    $('desc').textContent = DESCRIPTIONS[state.level];
+    setActive($('levels').querySelectorAll('[data-level]'), button => {
+      return button.dataset.level === state.level;
+    });
 
-  document.querySelectorAll('[data-site]').forEach(button => {
-    button.classList.toggle('site--on', button.dataset.site === state.tab);
-  });
-  document.querySelectorAll('[data-level]').forEach(button => {
-    button.classList.toggle('levels__button--on', button.dataset.level === level);
-  });
+    return;
+  }
 
-  // trusted lists belong to one site each; Reddit has no joined communities, so it has none
-  const rows = $('trustRows');
+  const rows = $('summaryRows');
 
   rows.replaceChildren();
 
-  for (const site of shown) {
-    const config = SITES[site];
-    const count = Object.keys(state[config.trust]).length;
+  for (const [app, config] of Object.entries(APPS)) {
     const row = document.createElement('button');
 
     row.type = 'button';
-    row.className = 'box box--button';
-    row.dataset.manage = site;
+    row.className = 'box box--button box--gap';
+    row.dataset.summary = app;
     row.innerHTML = '<span class="box__text"><b></b><small></small></span><span class="box__arrow">&rarr;</span>';
-    row.querySelector('b').textContent = `${config.label} ${config.noun}`;
-    row.querySelector('small').textContent = `${count} trusted`;
+    row.querySelector('b').textContent = config.label;
+    row.querySelector('small').textContent = LEVEL_NAMES[ruleOf(app).level];
     row.onclick = () => {
-      openManage(site);
+      state.view = 'settings';
+      render();
     };
     rows.append(row);
   }
+};
 
-  const redditOnly = !state.global && state.tab === 'reddit';
+const handleAppChange = (app, values) => {
+  save({ sites: { ...state.sites, [app]: { ...state.sites[app], ...values } } });
+};
 
-  $('trustHeading').hidden = redditOnly;
-  $('siteNote').hidden = !redditOnly;
-  $('siteNote').textContent =
-    'Reddit has no joined-community feature, so these rules apply to the whole site. Reddit support is coming.';
+const renderSettings = () => {
+  $('global').checked = state.global;
+  $('globalHint').textContent = state.global
+    ? 'One set of rules for YouTube, X and Reddit'
+    : 'Each app has its own rules';
+  $('panic').checked = state.panic;
+  $('panicBox').hidden = !state.global;
+  $('globalNote').hidden = !state.global;
+  $('appCards').hidden = state.global;
+
+  const cards = $('appCards');
+
+  cards.replaceChildren();
+
+  if (state.global) {
+    return;
+  }
+
+  for (const [app, config] of Object.entries(APPS)) {
+    const { level, panic } = ruleOf(app);
+    const card = document.createElement('div');
+
+    card.className = 'card';
+    card.dataset.app = app;
+    card.innerHTML =
+      '<div class="card__top"><span class="ico"></span><b></b><small>Panic</small>' +
+      '<input class="switch app-panic" type="checkbox"></div>' +
+      '<div class="levels levels--mini"></div>';
+    card.querySelector('.ico').innerHTML = `<img src="${config.icon}" width="16" height="16" alt="">`;
+    card.querySelector('b').textContent = config.label;
+
+    const toggle = card.querySelector('.app-panic');
+
+    toggle.checked = panic;
+    toggle.onchange = () => {
+      handleAppChange(app, { panic: toggle.checked });
+    };
+
+    const bar = card.querySelector('.levels');
+
+    for (const [value, name] of Object.entries(LEVEL_NAMES)) {
+      const button = document.createElement('button');
+
+      button.type = 'button';
+      button.className = 'levels__button' + (value === level ? ' levels__button--on' : '');
+      button.dataset.appLevel = value;
+      button.textContent = name;
+      button.onclick = () => {
+        handleAppChange(app, { level: value });
+      };
+      bar.append(button);
+    }
+
+    cards.append(card);
+  }
 };
 
 const handleChannelToggle = (row, on) => {
-  const key = SITES[state.manage].trust;
+  const key = SITES[state.trustSite].trust;
   const trusted = { ...state[key] };
 
   if (on) {
@@ -175,26 +226,25 @@ const handleChannelToggle = (row, on) => {
   save({ [key]: trusted });
 };
 
-const renderChannels = () => {
-  const site = state.manage;
-
-  if (!site) {
-    return;
-  }
-
+const renderTrusted = () => {
+  const site = state.trustSite;
   const config = SITES[site];
   const query = $('search').value.trim().toLowerCase();
   const rows = rowsFor(site).filter(row => {
     return row.name.toLowerCase().includes(query);
   });
-  const list = $('list');
   const mode = state[config.mode];
 
-  $('manageTitle').textContent = `Trusted ${config.noun}`;
-  $('modeDesc').textContent = MODE_DESCRIPTIONS[mode];
-  document.querySelectorAll('[data-mode]').forEach(button => {
-    button.classList.toggle('levels__button--on', button.dataset.mode === mode);
+  setActive($('siteSwitch').querySelectorAll('[data-trust-site]'), button => {
+    return button.dataset.trustSite === site;
   });
+  setActive($('modes').querySelectorAll('[data-mode]'), button => {
+    return button.dataset.mode === mode;
+  });
+  $('modeDesc').textContent = MODE_DESCRIPTIONS[mode];
+
+  const list = $('list');
+
   list.replaceChildren();
 
   if (!rows.length) {
@@ -248,10 +298,24 @@ const renderChannels = () => {
 };
 
 const render = () => {
-  $('main').hidden = Boolean(state.manage);
-  $('channels').hidden = !state.manage;
-  renderMain();
-  renderChannels();
+  const { view } = state;
+
+  $('rules').hidden = view !== 'rules';
+  $('trusted').hidden = view !== 'trusted';
+  $('settings').hidden = view !== 'settings';
+  $('tabs').hidden = view === 'settings';
+  $('gear').classList.toggle('gear--on', view === 'settings');
+  document.querySelectorAll('[data-view]').forEach(button => {
+    button.classList.toggle('tabs__tab--on', button.dataset.view === view);
+  });
+
+  if (view === 'rules') {
+    renderRules();
+  } else if (view === 'trusted') {
+    renderTrusted();
+  } else {
+    renderSettings();
+  }
 };
 
 const save = values => {
@@ -261,33 +325,27 @@ const save = values => {
   chrome.storage.sync.set(values);
 };
 
-const siteValues = values => {
-  return { sites: { ...state.sites, [state.tab]: { ...state.sites[state.tab], ...values } } };
-};
-
 const handleLevelClick = event => {
-  const { level } = event.currentTarget.dataset;
-
-  save(state.global ? { level } : siteValues({ level }));
+  save({ level: event.currentTarget.dataset.level });
 };
 
-const handlePanicChange = () => {
-  const panic = $('panic').checked;
-
-  save(state.global ? { panic } : siteValues({ panic }));
+const handleViewClick = event => {
+  state.view = event.currentTarget.dataset.view;
+  render();
 };
 
-const handleGlobalChange = () => {
-  save({ global: $('global').checked });
+const handleGear = () => {
+  state.view = state.view === 'settings' ? 'rules' : 'settings';
+  render();
 };
 
 const handleSiteClick = event => {
-  state.tab = event.currentTarget.dataset.site;
+  state.trustSite = event.currentTarget.dataset.trustSite;
   render();
 };
 
 const handleModeClick = event => {
-  save({ [SITES[state.manage].mode]: event.currentTarget.dataset.mode });
+  save({ [SITES[state.trustSite].mode]: event.currentTarget.dataset.mode });
 };
 
 // The popup reads the subscriptions page itself (host permission), so no open YouTube tab is needed.
@@ -341,22 +399,31 @@ const refresh = () => {
   });
 };
 
-document.querySelectorAll('[data-level]').forEach(button => {
-  button.onclick = handleLevelClick;
+$('levels')
+  .querySelectorAll('[data-level]')
+  .forEach(button => {
+    button.onclick = handleLevelClick;
+  });
+document.querySelectorAll('[data-view]').forEach(button => {
+  button.onclick = handleViewClick;
 });
-document.querySelectorAll('[data-site]').forEach(button => {
+document.querySelectorAll('[data-trust-site]').forEach(button => {
   button.onclick = handleSiteClick;
 });
 document.querySelectorAll('[data-mode]').forEach(button => {
   button.onclick = handleModeClick;
 });
-$('global').onchange = handleGlobalChange;
-$('panic').onchange = handlePanicChange;
-$('back').onclick = () => {
-  state.manage = null;
-  render();
+$('gear').onclick = handleGear;
+$('back').onclick = handleGear;
+$('global').onchange = () => {
+  save({ global: $('global').checked });
 };
-$('search').oninput = renderChannels;
+$('panic').onchange = () => {
+  save({ panic: $('panic').checked });
+};
+$('search').oninput = () => {
+  renderTrusted();
+};
 $('sync').onclick = handleSync;
 chrome.storage.onChanged.addListener(refresh);
 refresh();

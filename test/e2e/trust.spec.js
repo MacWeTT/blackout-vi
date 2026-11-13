@@ -258,7 +258,7 @@ test('Sync now lists every subscription but trusts none; you switch on the ones 
   const popup = await context.newPage();
 
   await popup.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
-  await popup.click('[data-manage="youtube"]');
+  await popup.click('[data-view="trusted"]');
   await popup.click('#sync');
   await expect(popup.locator('.channel__name')).toHaveText(['Digital Foundry', 'Rockstar Games'], { timeout: 8000 });
   await expect(popup.locator('#syncTitle')).toContainText('Synced');

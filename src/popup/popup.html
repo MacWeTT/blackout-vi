@@ -5,88 +5,84 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <header class="poster">
-      <img class="poster__logo" src="../../assets/images/gta-vi-logo.png" alt="Grand Theft Auto VI" />
+    <header class="hd">
+      <button class="gear" id="gear" type="button" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.3a.5.5 0 0 0-.6-.2l-2.4 1a7.4 7.4 0 0 0-1.7-1l-.4-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1a.5.5 0 0 0-.6.2L2.5 8.8a.5.5 0 0 0 .1.6l2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.3c.1.2.4.3.6.2l2.4-1c.5.4 1.1.7 1.7 1l.4 2.5c0 .2.3.4.5.4h3.8c.2 0 .5-.2.5-.4l.4-2.5c.6-.3 1.2-.6 1.7-1l2.4 1c.2.1.5 0 .6-.2l1.9-3.3a.5.5 0 0 0-.1-.6zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"
+          />
+        </svg>
+      </button>
     </header>
 
-    <main class="sheet" id="main">
-      <h1 class="sheet__title">Spoiler Shield</h1>
+    <nav class="tabs" id="tabs">
+      <button class="tabs__tab" data-view="rules" type="button">Rules</button>
+      <button class="tabs__tab" data-view="trusted" type="button">Trusted</button>
+    </nav>
 
-      <label class="box">
-        <span class="box__text">
-          <b>Global settings</b>
-          <small id="globalHint">The same rules on YouTube, X and Reddit</small>
-        </span>
-        <input class="switch" id="global" type="checkbox" />
-      </label>
+    <main class="bd" id="rules">
+      <div class="cap"><span>Show me</span><span class="chip" id="scopeChip">All sites</span></div>
 
-      <div class="sites" id="sites" hidden>
-        <button class="site" data-site="youtube" type="button" title="YouTube" aria-label="YouTube">
-          <svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true">
-            <rect width="28" height="20" rx="6" fill="#ff0000" />
-            <path d="M11 5.5v9l8-4.5z" fill="#fff" />
-          </svg>
-        </button>
-        <button class="site" data-site="x" type="button" title="X" aria-label="X">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-            <path d="M3 3h5l4.2 5.8L17 3h3l-6.4 7.4L21 21h-5l-4.6-6.3L6 21H3l7-8z" fill="#111" />
-          </svg>
-        </button>
-        <button class="site" data-site="reddit" type="button" title="Reddit (coming soon)" aria-label="Reddit">
-          <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
-            <circle cx="12" cy="12" r="11" fill="#ff4500" />
-            <ellipse cx="12" cy="14" rx="6.5" ry="4.5" fill="#fff" />
-            <circle cx="9.5" cy="13.5" r="1.1" fill="#ff4500" />
-            <circle cx="14.5" cy="13.5" r="1.1" fill="#ff4500" />
-            <circle cx="16.5" cy="7" r="1.5" fill="#fff" />
-          </svg>
-        </button>
+      <div id="globalRules">
+        <div class="levels" id="levels">
+          <button class="levels__button" data-level="all" type="button">Nothing</button>
+          <button class="levels__button" data-level="news" type="button">News only</button>
+          <button class="levels__button" data-level="story" type="button">No story</button>
+          <button class="levels__button" data-level="off" type="button">Everything</button>
+        </div>
+        <p class="desc" id="desc"></p>
       </div>
 
-      <h2 class="sheet__heading">Show me</h2>
-      <div class="levels" id="levels">
-        <button class="levels__button" data-level="all">Nothing</button>
-        <button class="levels__button" data-level="news">News only</button>
-        <button class="levels__button" data-level="story">No story</button>
-        <button class="levels__button" data-level="off">Everything</button>
+      <div id="appSummary" hidden>
+        <div id="summaryRows"></div>
+        <p class="desc">Each app has its own rules. Change them in Settings.</p>
       </div>
-      <p class="sheet__desc" id="desc"></p>
-
-      <h2 class="sheet__heading" id="trustHeading">Trusted</h2>
-      <div id="trustRows"></div>
-      <p class="sheet__desc sheet__desc--small" id="siteNote" hidden></p>
-
-      <label class="box">
-        <input class="box__check" id="panic" type="checkbox" />
-        <span class="box__text">
-          <b>Panic mode</b>
-          <small
-            >Also hides generic spoiler phrases ("who dies", "all endings") on any video, even without a GTA
-            mention</small
-          >
-        </span>
-      </label>
     </main>
 
-    <main class="sheet" id="channels" hidden>
-      <button class="link link--back" id="back" type="button">
-        &larr; <span id="manageTitle">Trusted channels</span>
-      </button>
-      <div class="levels levels--three" id="modes">
-        <button class="levels__button" data-mode="off">Off</button>
-        <button class="levels__button" data-mode="gameplay">Allow gameplay</button>
-        <button class="levels__button" data-mode="all">Allow all</button>
+    <main class="bd" id="trusted" hidden>
+      <div class="levels levels--two" id="siteSwitch">
+        <button class="levels__button" data-trust-site="youtube" type="button">YouTube channels</button>
+        <button class="levels__button" data-trust-site="x" type="button">X accounts</button>
       </div>
-      <p class="sheet__desc sheet__desc--small" id="modeDesc"></p>
+      <div class="levels levels--three levels--gap" id="modes">
+        <button class="levels__button" data-mode="off" type="button">Off</button>
+        <button class="levels__button" data-mode="gameplay" type="button">Allow gameplay</button>
+        <button class="levels__button" data-mode="all" type="button">Allow all</button>
+      </div>
+      <p class="desc" id="modeDesc"></p>
       <input class="search" id="search" type="search" placeholder="Search" />
       <div class="list" id="list"></div>
-      <div class="box">
+      <div class="box box--gap">
         <span class="box__text">
           <b id="syncTitle">Not synced yet</b>
           <small id="syncDetail"></small>
         </span>
-        <button class="pill" id="sync" type="button">Sync now</button>
+        <button class="btn" id="sync" type="button">Sync now</button>
       </div>
+    </main>
+
+    <main class="bd" id="settings" hidden>
+      <button class="back" id="back" type="button">&larr; Settings</button>
+
+      <label class="box">
+        <span class="box__text">
+          <b>Global settings</b>
+          <small id="globalHint">One set of rules for YouTube, X and Reddit</small>
+        </span>
+        <input class="switch" id="global" type="checkbox" />
+      </label>
+
+      <label class="box box--gap" id="panicBox">
+        <span class="box__text">
+          <b>Panic mode</b>
+          <small>Also hides generic spoiler phrases ("who dies", "all endings") on any video</small>
+        </span>
+        <input class="switch" id="panic" type="checkbox" />
+      </label>
+
+      <p class="desc" id="globalNote">Turn Global settings off to give YouTube, X and Reddit their own rules.</p>
+      <div id="appCards" hidden></div>
     </main>
 
     <script src="../core/trust.js"></script>
