@@ -41,6 +41,9 @@
 
         entry.target.style.setProperty('--gv-w', Math.round(width));
         entry.target.style.setProperty('--gv-h', Math.round(height));
+
+        // too small for the logo to fit beside the badge and text
+        entry.target.toggleAttribute('data-gv-small', width < 200 || height < 120);
       }
     });
 

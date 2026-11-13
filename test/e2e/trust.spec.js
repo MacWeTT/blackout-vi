@@ -289,3 +289,50 @@ test('Sync now lists every subscription but trusts none; you switch on the ones 
     .toBe('ok');
   await expect(popup.locator('.list .switch:checked')).toHaveCount(1);
 });
+
+test('the trust badge never overlaps the card text or logo, from tiny to large tiles', async ({ openFixture }) => {
+  const page = await openFixture({ mode: 'gameplay', trusted: { '@digitalfoundry': 'Digital Foundry' } });
+
+  await addChannelTile(page, 'GTA 6 ending explained', DF);
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
+
+  const sizes = [
+    [168, 94],
+    [240, 135],
+    [440, 248],
+  ];
+
+  for (const [width, height] of sizes) {
+    await page.addStyleTag({ content: `#feed > * { width: ${width}px !important; height: ${height}px !important; }` });
+    await page.waitForTimeout(250);
+
+    const boxes = await page.evaluate(() => {
+      const rect = selector => {
+        const element = document.querySelector(selector);
+
+        return element.getBoundingClientRect().toJSON();
+      };
+      const logo = document.querySelector('.gv-card__logo');
+
+      return {
+        badge: rect('.gv-card__trust'),
+        kind: rect('.gv-card__kind'),
+        card: rect('.gv-card'),
+        logo: getComputedStyle(logo).display === 'none' ? null : rect('.gv-card__logo'),
+      };
+    });
+
+    // the badge sits fully inside the card and above the text, and above the logo when there is one
+    expect(boxes.badge.top, `${width}px`).toBeGreaterThanOrEqual(boxes.card.top);
+    expect(boxes.badge.right, `${width}px`).toBeLessThanOrEqual(boxes.card.right);
+    expect(boxes.badge.bottom, `${width}px`).toBeLessThanOrEqual(boxes.kind.top);
+
+    if (boxes.logo) {
+      expect(boxes.badge.bottom, `${width}px logo`).toBeLessThanOrEqual(boxes.logo.top);
+    }
+  }
+});

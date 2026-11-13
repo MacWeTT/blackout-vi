@@ -46,6 +46,9 @@
   background: url('chrome-extension://__MSG_@@extension_id__/assets/images/gta-vi-logo.png') center / contain no-repeat;
   filter: drop-shadow(0 2px 8px rgba(20, 0, 40, 0.6));
 }
+[data-gv-small] .gv-card__logo {
+  display: none;
+}
 .gv-card__kind::before {
   content: attr(data-kind);
   font-size: calc(var(--gv-font) * 1.1);
@@ -65,6 +68,11 @@
 }
 .gv-card__hint::before {
   content: 'Click to reveal';
+}
+
+/* Room for the trust badge: the logo and text centre in the space below it instead of sliding under it. */
+.gv-card:has(.gv-card__trust:not([hidden])) {
+  padding-top: calc(var(--gv-font) * 2.1);
 }
 
 /* Trust badge in the card's corner (hidden when the channel is unknown). */
