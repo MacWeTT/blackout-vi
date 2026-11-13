@@ -26,8 +26,8 @@
       <div id="globalRules">
         <div class="levels" id="levels">
           <button class="levels__button" data-level="all" type="button">Nothing</button>
-          <button class="levels__button" data-level="news" type="button">News only</button>
-          <button class="levels__button" data-level="story" type="button">No story</button>
+          <button class="levels__button" data-level="news" type="button">Content</button>
+          <button class="levels__button" data-level="story" type="button">Gameplay</button>
           <button class="levels__button" data-level="off" type="button">Everything</button>
         </div>
         <p class="desc" id="desc"></p>
@@ -43,6 +43,8 @@
         <input class="switch" id="panic" type="checkbox" aria-label="Panic mode" />
         <div class="panic-sites" id="panicSites" hidden></div>
       </div>
+
+      <p class="status" id="tabStatus"></p>
     </main>
 
     <main class="bd" id="trusted" hidden>

@@ -47,7 +47,7 @@ const seedSubs = (popup, count) => {
 };
 
 test.describe('layout', () => {
-  test('defaults: Rules tab, Global settings on, News only, no gear or settings page', async ({
+  test('defaults: Rules tab, Global settings on, Content, no gear or settings page', async ({
     context,
     extensionId,
   }) => {
@@ -55,7 +55,7 @@ test.describe('layout', () => {
 
     await expect(popup.locator('[data-view="rules"]')).toHaveClass(/tabs__tab--on/);
     await expect(popup.locator('#global')).toBeChecked();
-    await expect(level(popup)).toHaveText('News only');
+    await expect(level(popup)).toHaveText('Content');
     await expect(popup.locator('#scopeChip')).toHaveText('All sites');
     await expect(popup.locator('#siteRules')).toBeHidden();
     await expect(popup.locator('#gear')).toHaveCount(0);
@@ -129,11 +129,11 @@ test.describe('rules', () => {
     const popup = await openPopup(context, extensionId);
 
     await popup.click('[data-level="story"]');
-    await expect(level(popup)).toHaveText('No story');
+    await expect(level(popup)).toHaveText('Gameplay');
     await expect(popup.locator('#desc')).toContainText('endings');
 
     await popup.reload();
-    await expect(level(popup)).toHaveText('No story');
+    await expect(level(popup)).toHaveText('Gameplay');
   });
 
   test('panic mode with global on is one switch, saved and restored', async ({ context, extensionId }) => {
@@ -173,8 +173,8 @@ test.describe('rules', () => {
     await popup.locator('[data-site-row="x"] [data-app-level="all"]').click();
     await popup.locator('[data-panic-site="reddit"] input').check();
     await expect(siteLevel(popup, 'x')).toHaveText('Nothing');
-    await expect(siteLevel(popup, 'youtube')).toHaveText('News only');
-    await expect(siteLevel(popup, 'reddit')).toHaveText('News only');
+    await expect(siteLevel(popup, 'youtube')).toHaveText('Content');
+    await expect(siteLevel(popup, 'reddit')).toHaveText('Content');
 
     await popup.reload();
     await expect(popup.locator('#global')).not.toBeChecked();
@@ -238,7 +238,7 @@ test.describe('rules', () => {
         { timeout: 8000 },
       )
       .toBe('ok');
-    expect(await stateOf(x, 0)).toBe('blocked'); // X still follows News only
+    expect(await stateOf(x, 0)).toBe('blocked'); // X still follows Content
   });
 });
 
@@ -250,10 +250,32 @@ test.describe('trusted tab', () => {
     await expect(popup.locator('[data-trust-site]')).toHaveText(['YouTube channels', 'X accounts']);
   });
 
-  test('each list has its own mode, and Sync now is YouTube only', async ({ context, extensionId }) => {
+  test('with nobody trusted the mode control is greyed out and says why', async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     await popup.click('[data-view="trusted"]');
+    await expect(popup.locator('#modes')).toHaveClass(/levels--disabled/);
+    await expect(popup.locator('#modeDesc')).toHaveText('Trust a channel to turn this on.');
+    await popup.click('[data-trust-site="x"]');
+    await expect(popup.locator('#modeDesc')).toHaveText('Trust an account to turn this on.');
+
+    const clickable = await popup.locator('#modes').evaluate(element => {
+      return getComputedStyle(element).pointerEvents;
+    });
+
+    expect(clickable).toBe('none');
+  });
+
+  test('each list has its own mode, and Sync now is YouTube only', async ({ context, extensionId }) => {
+    const popup = await openPopup(context, extensionId);
+
+    await popup.evaluate(() => {
+      return new Promise(resolve => {
+        chrome.storage.sync.set({ trusted: { '@a': 'A' }, xTrusted: { '@b': 'B' } }, resolve);
+      });
+    });
+    await popup.click('[data-view="trusted"]');
+    await expect(popup.locator('#modes')).not.toHaveClass(/levels--disabled/);
     await expect(popup.locator('#sync')).toBeVisible();
     await expect(popup.locator('#modes .levels__button--on')).toHaveText('Allow gameplay');
     await popup.click('[data-mode="all"]');
@@ -299,5 +321,36 @@ test.describe('trusted tab', () => {
     // search filters the scrolling list
     await popup.fill('#search', 'Channel 12');
     await expect(popup.locator('.channel__name')).toHaveText(['Channel 12']);
+  });
+});
+
+test.describe('tab status', () => {
+  test('on a page that is not YouTube or X it says where to go', async ({ context, extensionId }) => {
+    const popup = await openPopup(context, extensionId);
+
+    await expect(popup.locator('#tabStatus')).toContainText('Open YouTube or X');
+  });
+
+  test('the page script answers the popup with what it has done', async ({ context, extensionId, openFixture }) => {
+    const youtube = await openFixture();
+
+    await addTile(youtube, 'ytd-rich-item-renderer', 'GTA 6 ending explained');
+    await addTile(youtube, 'ytd-rich-item-renderer', 'Cooking pasta');
+    await expect
+      .poll(() => {
+        return stateOf(youtube, 1);
+      })
+      .toBe('ok');
+
+    const popup = await openPopup(context, extensionId);
+    const reply = await popup.evaluate(() => {
+      return new Promise(resolve => {
+        chrome.tabs.query({ url: 'https://www.youtube.com/*' }, tabs => {
+          chrome.tabs.sendMessage(tabs[0].id, 'gv-status', resolve);
+        });
+      });
+    });
+
+    expect(reply).toEqual({ site: 'youtube', level: 'news', checked: 2, hidden: 1 });
   });
 });
