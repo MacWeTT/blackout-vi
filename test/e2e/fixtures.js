@@ -108,7 +108,7 @@ const test = base.test.extend({
 
       await page.addInitScript(value => {
         // the content script rewrites this cache, so always reset it for a clean start
-        localStorage.setItem('gv_settings', JSON.stringify({ level: 'news', panic: false, ...value }));
+        localStorage.setItem('gv_settings', JSON.stringify({ level: 'content', panic: false, ...value }));
       }, settings);
       const urls = { x: X_URL, reddit: REDDIT_URL };
 

@@ -2,7 +2,7 @@
    nested tiles (a lockup inside a rich item) are never marked, so they follow their outer tile.
    opacity (not display or visibility) keeps layout stable and lets YouTube keep rendering lazy tiles,
    which it skips when they are visibility:hidden. */
-:root:not([data-gv-off])
+:root:not([data-gv-everything])
   :is(
     ytd-rich-item-renderer,
     ytd-video-renderer,
@@ -57,7 +57,7 @@
 }
 
 /* Watch page: the player stays hidden while pending or blocked. */
-:root:not([data-gv-off])[data-gv-watch] ytd-player {
+:root:not([data-gv-everything])[data-gv-watch] ytd-player {
   visibility: hidden !important;
 }
 ytd-watch-flexy #player {

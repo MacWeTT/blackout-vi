@@ -55,7 +55,7 @@ test.describe('YouTube comments', () => {
       .toBe('blocked');
     expect(await stripText(gameplay)).toContain('Potential gameplay spoiler hidden');
 
-    const nothing = await openFixture({ level: 'all' });
+    const nothing = await openFixture({ level: 'nothing' });
 
     await addYoutubeComment(nothing, 'GTA 6 trailer music is unreal');
     await expect
@@ -89,10 +89,10 @@ test.describe('YouTube comments', () => {
 
   test('comments follow the same level as posts', async ({ openFixture }) => {
     const cases = [
-      ['all', ['blocked', 'blocked', 'blocked']],
-      ['news', ['ok', 'blocked', 'blocked']],
-      ['story', ['ok', 'ok', 'blocked']],
-      ['off', ['pending', 'pending', 'pending']], // Everything: tiles are left untouched
+      ['nothing', ['blocked', 'blocked', 'blocked']],
+      ['content', ['ok', 'blocked', 'blocked']],
+      ['gameplay', ['ok', 'ok', 'blocked']],
+      ['everything', ['pending', 'pending', 'pending']], // Everything: tiles are left untouched
     ];
 
     for (const [level, expected] of cases) {
@@ -222,7 +222,7 @@ const openStatusPage = async (context, extensionId, focalText) => {
   const page = await context.newPage();
 
   await page.addInitScript(() => {
-    localStorage.setItem('gv_settings', JSON.stringify({ level: 'news', panic: false }));
+    localStorage.setItem('gv_settings', JSON.stringify({ level: 'content', panic: false }));
   });
   await page.goto('https://x.com/someone/status/1');
   await addTweet(page, focalText, '1'); // the post being read: its own link carries its id
@@ -443,7 +443,7 @@ test.describe('Reddit', () => {
     await popup.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
     await expect(popup.locator('#levels .levels__button--on')).toHaveCount(1);
     await popup.uncheck('#global');
-    await popup.locator('[data-site-row="reddit"] [data-app-level="story"]').click(); // Gameplay: shown
+    await popup.locator('[data-site-row="reddit"] [data-app-level="gameplay"]').click(); // Gameplay: shown
 
     await expect
       .poll(

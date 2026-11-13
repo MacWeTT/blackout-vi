@@ -146,7 +146,7 @@ test.describe('trusted accounts on X', () => {
   });
 
   test('allow all: a story spoiler from a trusted account shows', async ({ openFixture }) => {
-    const page = await open(openFixture, { mode: 'all', trusted: { '@rockstargames': 'Rockstar Games' } });
+    const page = await open(openFixture, { mode: 'everything', trusted: { '@rockstargames': 'Rockstar Games' } });
 
     await addTweet(page, 'GTA 6 ending explained', ROCKSTAR);
     await expect
@@ -157,7 +157,7 @@ test.describe('trusted accounts on X', () => {
   });
 
   test('an account you did not trust is hidden', async ({ openFixture }) => {
-    const page = await open(openFixture, { mode: 'all', trusted: { '@rockstargames': 'Rockstar Games' } });
+    const page = await open(openFixture, { mode: 'everything', trusted: { '@rockstargames': 'Rockstar Games' } });
 
     await addTweet(page, 'GTA 6 gameplay first hour', { handle: 'randomguy', name: 'Random Guy' });
     await expect
@@ -168,7 +168,7 @@ test.describe('trusted accounts on X', () => {
   });
 
   test('the badge names the account and trusting it clears the card', async ({ openFixture }) => {
-    const page = await open(openFixture, { mode: 'all' });
+    const page = await open(openFixture, { mode: 'everything' });
 
     await addTweet(page, 'GTA 6 gameplay first hour', { handle: 'randomguy', name: 'Random Guy' });
     await expect
@@ -191,7 +191,7 @@ test.describe('trusted accounts on X', () => {
   });
 
   test('a tweet without an author block has no badge and is never trusted', async ({ openFixture }) => {
-    const page = await open(openFixture, { mode: 'all', trusted: { '@rockstargames': 'Rockstar Games' } });
+    const page = await open(openFixture, { mode: 'everything', trusted: { '@rockstargames': 'Rockstar Games' } });
 
     await page.evaluate(() => {
       const tweet = document.createElement('article');

@@ -25,10 +25,10 @@
 
       <div id="globalRules">
         <div class="levels" id="levels">
-          <button class="levels__button" data-level="all" type="button">Nothing</button>
-          <button class="levels__button" data-level="news" type="button">Content</button>
-          <button class="levels__button" data-level="story" type="button">Gameplay</button>
-          <button class="levels__button" data-level="off" type="button">Everything</button>
+          <button class="levels__button" data-level="nothing" type="button">Nothing</button>
+          <button class="levels__button" data-level="content" type="button">Content</button>
+          <button class="levels__button" data-level="gameplay" type="button">Gameplay</button>
+          <button class="levels__button" data-level="everything" type="button">Everything</button>
         </div>
         <p class="desc" id="desc"></p>
       </div>
@@ -51,9 +51,9 @@
         <button class="levels__button" data-trust-site="x" type="button">X accounts</button>
       </div>
       <div class="levels levels--three levels--gap" id="modes">
-        <button class="levels__button" data-mode="off" type="button">Off</button>
-        <button class="levels__button" data-mode="gameplay" type="button">Allow gameplay</button>
-        <button class="levels__button" data-mode="all" type="button">Allow all</button>
+        <button class="levels__button" data-mode="same" type="button">Same rules</button>
+        <button class="levels__button" data-mode="gameplay" type="button">Gameplay</button>
+        <button class="levels__button" data-mode="everything" type="button">Everything</button>
       </div>
       <p class="desc" id="modeDesc"></p>
       <input class="search" id="search" type="search" placeholder="Search" />
@@ -67,6 +67,7 @@
       </div>
     </main>
 
+    <script src="../core/names.js"></script>
     <script src="../core/trust.js"></script>
     <script src="popup.js"></script>
   </body>

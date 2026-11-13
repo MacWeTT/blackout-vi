@@ -1,5 +1,6 @@
 // run: node test/trust.test.js
 const assert = require('assert');
+require('../src/core/names.js');
 require('../src/core/wordlists.js');
 require('../src/core/classifier.js');
 require('../src/core/trust.js');
@@ -45,7 +46,7 @@ assert.ok(!isTrusted(trust, { key: '@someoneelse', name: 'Someone Else' }));
 assert.ok(!isTrusted(trust, { key: '', name: '' }), 'an unidentified channel is never trusted');
 assert.ok(!isTrusted(trust, null));
 assert.ok(
-  !isTrusted(buildTrust({ ...settings, subsMode: 'off' }), { key: '@tgg', name: 'TGG' }),
+  !isTrusted(buildTrust({ ...settings, subsMode: 'same' }), { key: '@tgg', name: 'TGG' }),
   'off ignores the list',
 );
 

@@ -1,13 +1,12 @@
 // Shared engine for every site. A tile is hidden until it is judged; a blocked tile gets a card with a reveal click
 // and a trust badge. Each site supplies an adapter: its tile selectors, how to find the author, and site-only hooks.
 (() => {
-  const LEVELS = ['all', 'news', 'story', 'off'];
-  const LABELS = { story: 'Story spoiler', gameplay: 'Gameplay spoiler', news: 'GTA VI content' };
+  const LABELS = { story: 'Story spoiler', gameplay: 'Gameplay spoiler', content: 'GTA VI content' };
   // Comments get a one-line strip, not a card. "Potential" because the matching is by keywords and can be wrong.
   const STRIP_LABELS = {
     story: 'Potential story spoiler hidden',
     gameplay: 'Potential gameplay spoiler hidden',
-    news: 'Potential spoiler hidden',
+    content: 'Potential spoiler hidden',
   };
   const KEY = 'gv_settings';
 
@@ -19,7 +18,7 @@
 
     // Resolved settings for this site. localStorage is a synchronous cache so the right level applies before
     // chrome.storage answers.
-    let settings = { level: 'news', panic: false, mode: 'gameplay', trusted: {} };
+    let settings = { level: 'content', panic: false, mode: 'gameplay', trusted: {} };
     let trust = GV.buildTrust({ trusted: settings.trusted, subsMode: settings.mode });
 
     try {
@@ -28,12 +27,12 @@
       // no cache yet: the defaults stay
     }
 
-    if (!LEVELS.includes(settings.level)) {
-      settings.level = 'news';
-    }
+    settings.level = GV.normalizeLevel(settings.level);
+
+    settings.mode = GV.normalizeMode(settings.mode);
 
     trust = GV.buildTrust({ trusted: settings.trusted, subsMode: settings.mode });
-    root.toggleAttribute('data-gv-off', settings.level === 'off');
+    root.toggleAttribute('data-gv-everything', settings.level === 'everything');
 
     let stamp = 0; // bumped on settings change so cached verdicts are recomputed
     const paused = new Set();
@@ -212,7 +211,7 @@
     const check = (element, force = false) => {
       const { level, panic, mode } = settings;
 
-      if (level === 'off' || !element.isConnected) {
+      if (level === 'everything' || !element.isConnected) {
         return;
       }
 
@@ -305,7 +304,7 @@
     };
 
     const flush = () => {
-      if (settings.level !== 'off') {
+      if (settings.level !== 'everything') {
         for (const [element, force] of dirty) {
           check(element, force);
         }
@@ -351,7 +350,7 @@
 
     // Backstop only; unchanged tiles cost one string compare.
     const sweep = () => {
-      if (settings.level !== 'off') {
+      if (settings.level !== 'everything') {
         for (const element of document.querySelectorAll(TILES)) {
           if (!element.parentElement.closest(TILES)) {
             check(element);
@@ -405,9 +404,9 @@
     const apply = incoming => {
       settings = { ...settings, ...incoming };
 
-      if (!LEVELS.includes(settings.level)) {
-        settings.level = 'news';
-      }
+      settings.level = GV.normalizeLevel(settings.level);
+
+      settings.mode = GV.normalizeMode(settings.mode);
 
       try {
         localStorage.setItem(KEY, JSON.stringify(settings));
@@ -415,7 +414,7 @@
         // storage blocked: the level still applies for this page
       }
 
-      root.toggleAttribute('data-gv-off', settings.level === 'off');
+      root.toggleAttribute('data-gv-everything', settings.level === 'everything');
       trust = GV.buildTrust({ trusted: settings.trusted, subsMode: settings.mode });
       stamp++;
       hooks.onApply?.();
@@ -526,7 +525,7 @@
     const handlePlay = event => {
       const video = event.target;
 
-      if (settings.level === 'off' || video.localName !== 'video') {
+      if (settings.level === 'everything' || video.localName !== 'video') {
         return;
       }
 

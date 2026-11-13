@@ -1,15 +1,15 @@
-const LEVEL_NAMES = { all: 'Nothing', news: 'Content', story: 'Gameplay', off: 'Everything' };
-// Content = trailers, news, release info, score and OST. Each description says what is shown and what is hidden.
+const LEVEL_NAMES = { nothing: 'Nothing', content: 'Content', gameplay: 'Gameplay', everything: 'Everything' };
+// Content = trailers, news, release info, music and score. Each description says what is shown and what is hidden.
 const DESCRIPTIONS = {
-  all: 'Shows nothing about GTA VI. Hides content, gameplay and story.',
-  news: 'Shows content: trailers, news, release info, score and OST. Hides gameplay and story.',
-  story: 'Shows content and gameplay. Hides story, endings, deaths and missions.',
-  off: 'Shows everything: content, gameplay and story. Protection is off.',
+  nothing: 'Shows nothing about GTA VI. Hides content, gameplay and story.',
+  content: 'Shows content: trailers, news, release info, music and score. Hides gameplay and story.',
+  gameplay: 'Shows content and gameplay. Hides story, endings, deaths and missions.',
+  everything: 'Shows everything: content, gameplay and story. Protection is off.',
 };
 const MODE_DESCRIPTIONS = {
-  off: 'Everyone follows the same rules, including the ones you trust.',
-  gameplay: 'Ones you trust may show news and gameplay; story spoilers stay hidden.',
-  all: 'Ones you trust skip the shield completely, spoilers included.',
+  same: 'Trusted ones follow the same rules as everyone else.',
+  gameplay: 'Trusted ones may show content and gameplay; story spoilers stay hidden.',
+  everything: 'Trusted ones skip the shield completely, spoilers included.',
 };
 
 // Per-app rules (when Global settings is off). Reddit has no trusted list: it only gets a level and panic.
@@ -46,7 +46,7 @@ const SITES = {
 };
 const DEFAULTS = {
   global: true,
-  level: 'news',
+  level: 'content',
   panic: false,
   sites: {},
   trusted: {},
@@ -387,6 +387,16 @@ const refresh = () => {
       }
 
       state = { ...state, ...synced, ...local };
+      state.level = GV.normalizeLevel(state.level);
+      state.subsMode = GV.normalizeMode(state.subsMode);
+      state.xMode = GV.normalizeMode(state.xMode);
+
+      for (const app of Object.keys(state.sites)) {
+        if (state.sites[app].level) {
+          state.sites[app] = { ...state.sites[app], level: GV.normalizeLevel(state.sites[app].level) };
+        }
+      }
+
       render();
     });
   });

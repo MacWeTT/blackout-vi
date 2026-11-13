@@ -8,7 +8,7 @@
     });
   };
 
-  // bucket: 'story' | 'gameplay' | 'news' | null (not about GTA VI)
+  // bucket: 'story' | 'gameplay' | 'content' | null (not about GTA VI)
   // Severity order: story > gameplay > news. The highest match wins.
   const classify = (text, options = {}) => {
     const { assumeGta = false, panic = false } = options;
@@ -38,25 +38,27 @@
       return { gta: true, bucket: 'gameplay' };
     }
 
-    return { gta: true, bucket: 'news' };
+    return { gta: true, bucket: 'content' };
   };
 
-  // level: 'all' | 'news' (news only) | 'story' (story only) | 'off'
-  const isBlocked = (result, level) => {
-    if (!result || !result.bucket || level === 'off') {
+  // level (what you may see): 'nothing' | 'content' | 'gameplay' | 'everything'. Returns true when the post is hidden.
+  const isBlocked = (result, rawLevel) => {
+    const level = GV.normalizeLevel(rawLevel);
+
+    if (!result || !result.bucket || level === 'everything') {
       return false;
     }
 
-    if (level === 'all') {
+    if (level === 'nothing') {
       return true;
     }
 
-    if (level === 'news') {
-      return result.bucket !== 'news';
+    if (level === 'content') {
+      return result.bucket !== 'content';
     }
 
     return result.bucket === 'story';
   };
 
-  globalThis.GV = { classify, isBlocked };
+  globalThis.GV = { ...globalThis.GV, classify, isBlocked };
 })();

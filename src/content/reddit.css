@@ -1,6 +1,6 @@
 /* Reddit: a post or comment is hidden until the script judges it. opacity, not visibility or display. A comment
    thread is one tile (replies are nested inside it), so replies follow their parent. */
-:root:not([data-gv-off])
+:root:not([data-gv-everything])
   :is(shreddit-post, shreddit-comment):not(
     :is(shreddit-post, shreddit-comment) :is(shreddit-post, shreddit-comment)
   ):not([data-gv-ok]):not([data-gv-blocked]) {

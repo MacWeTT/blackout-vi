@@ -183,7 +183,7 @@ test('a pending tile is hidden with opacity, never visibility:hidden or display:
 });
 
 test('the card names the kind of spoiler and shows the logo', async ({ openFixture }) => {
-  const page = await openFixture({ level: 'all' });
+  const page = await openFixture({ level: 'nothing' });
   const kinds = [
     ['GTA 6 ending explained', 'Story spoiler'],
     ['GTA 6 gameplay first hour', 'Gameplay spoiler'],

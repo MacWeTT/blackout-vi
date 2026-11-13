@@ -38,6 +38,7 @@
     {
       "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
       "js": [
+        "src/core/names.js",
         "src/core/wordlists.js",
         "src/core/classifier.js",
         "src/core/trust.js",
@@ -50,6 +51,7 @@
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
       "js": [
+        "src/core/names.js",
         "src/core/wordlists.js",
         "src/core/classifier.js",
         "src/core/trust.js",
@@ -62,6 +64,7 @@
     {
       "matches": ["https://www.reddit.com/*", "https://reddit.com/*"],
       "js": [
+        "src/core/names.js",
         "src/core/wordlists.js",
         "src/core/classifier.js",
         "src/core/trust.js",

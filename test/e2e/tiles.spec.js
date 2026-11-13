@@ -29,9 +29,9 @@ test.describe('classification at the default level (news only)', () => {
 test('every level blocks what it should', async ({ openFixture }) => {
   const titles = ['GTA 6 trailer', 'GTA 6 gameplay', 'GTA 6 ending', 'Cooking pasta'];
   const expected = {
-    all: ['blocked', 'blocked', 'blocked', 'ok'],
-    news: ['ok', 'blocked', 'blocked', 'ok'],
-    story: ['ok', 'ok', 'blocked', 'ok'],
+    nothing: ['blocked', 'blocked', 'blocked', 'ok'],
+    content: ['ok', 'blocked', 'blocked', 'ok'],
+    gameplay: ['ok', 'ok', 'blocked', 'ok'],
   };
 
   for (const level of Object.keys(expected)) {
@@ -53,7 +53,7 @@ test('every level blocks what it should', async ({ openFixture }) => {
 });
 
 test('level off hides nothing', async ({ openFixture }) => {
-  const page = await openFixture({ level: 'off' });
+  const page = await openFixture({ level: 'everything' });
 
   await addTile(page, TAG, 'GTA 6 ending explained');
   await page.waitForTimeout(500);
@@ -66,7 +66,7 @@ test('level off hides nothing', async ({ openFixture }) => {
 });
 
 test('panic mode blocks generic phrases without a GTA mention', async ({ openFixture }) => {
-  const page = await openFixture({ level: 'news', panic: true });
+  const page = await openFixture({ level: 'content', panic: true });
 
   await addTile(page, TAG, 'Elden Ring all endings');
   await expect
@@ -77,7 +77,7 @@ test('panic mode blocks generic phrases without a GTA mention', async ({ openFix
 });
 
 test('without panic mode a non-GTA video stays visible', async ({ openFixture }) => {
-  const page = await openFixture({ level: 'news', panic: false });
+  const page = await openFixture({ level: 'content', panic: false });
 
   await addTile(page, TAG, 'Elden Ring all endings');
   await expect

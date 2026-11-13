@@ -36,16 +36,16 @@
     return ref.key || (ref.name ? 'name:' + lower(ref.name) : '');
   };
 
-  // subsMode is what a trusted channel may show: 'off' (the list is ignored), 'gameplay' (news and gameplay
-  // skip the shield, story spoilers stay hidden) or 'all' (every rule is skipped).
+  // mode is what a trusted channel may show: 'same' (the list is ignored), 'gameplay' (content and gameplay skip the
+  // shield, story spoilers stay hidden) or 'everything' (every rule is skipped).
   // Nothing is trusted unless the user added it: subscriptions are only a list to pick from.
   const keepsStoryHidden = mode => {
-    return mode !== 'all';
+    return GV.normalizeMode(mode) !== 'everything';
   };
 
   const buildTrust = settings => {
     const { trusted = {}, subsMode = 'gameplay' } = settings;
-    const entries = subsMode === 'off' ? {} : trusted;
+    const entries = GV.normalizeMode(subsMode) === 'same' ? {} : trusted;
     const keys = new Set();
     const names = new Set();
 

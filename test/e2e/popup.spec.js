@@ -128,7 +128,7 @@ test.describe('rules', () => {
   test('the level is saved and restored', async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
-    await popup.click('[data-level="story"]');
+    await popup.click('[data-level="gameplay"]');
     await expect(level(popup)).toHaveText('Gameplay');
     await expect(popup.locator('#desc')).toContainText('endings');
 
@@ -170,7 +170,7 @@ test.describe('rules', () => {
 
     expect(text).not.toContain('coming soon');
 
-    await popup.locator('[data-site-row="x"] [data-app-level="all"]').click();
+    await popup.locator('[data-site-row="x"] [data-app-level="nothing"]').click();
     await popup.locator('[data-panic-site="reddit"] input').check();
     await expect(siteLevel(popup, 'x')).toHaveText('Nothing');
     await expect(siteLevel(popup, 'youtube')).toHaveText('Content');
@@ -193,9 +193,9 @@ test.describe('rules', () => {
     const x = await openFixture({}, 'x');
     const popup = await openPopup(context, extensionId);
 
-    await popup.click('[data-level="off"]');
-    await expect(youtube.locator('html')).toHaveAttribute('data-gv-off', '', { timeout: 8000 });
-    await expect(x.locator('html')).toHaveAttribute('data-gv-off', '', { timeout: 8000 });
+    await popup.click('[data-level="everything"]');
+    await expect(youtube.locator('html')).toHaveAttribute('data-gv-everything', '', { timeout: 8000 });
+    await expect(x.locator('html')).toHaveAttribute('data-gv-everything', '', { timeout: 8000 });
   });
 
   test('with Global settings off, one app changes and the other does not', async ({
@@ -228,7 +228,7 @@ test.describe('rules', () => {
     const popup = await openPopup(context, extensionId);
 
     await popup.uncheck('#global');
-    await popup.locator('[data-site-row="youtube"] [data-app-level="story"]').click(); // gameplay is allowed on YouTube
+    await popup.locator('[data-site-row="youtube"] [data-app-level="gameplay"]').click(); // gameplay is allowed on YouTube
 
     await expect
       .poll(
@@ -277,13 +277,13 @@ test.describe('trusted tab', () => {
     await popup.click('[data-view="trusted"]');
     await expect(popup.locator('#modes')).not.toHaveClass(/levels--disabled/);
     await expect(popup.locator('#sync')).toBeVisible();
-    await expect(popup.locator('#modes .levels__button--on')).toHaveText('Allow gameplay');
-    await popup.click('[data-mode="all"]');
+    await expect(popup.locator('#modes .levels__button--on')).toHaveText('Gameplay');
+    await popup.click('[data-mode="everything"]');
     await expect(popup.locator('#modeDesc')).toContainText('skip the shield');
 
     await popup.click('[data-trust-site="x"]');
     await expect(popup.locator('#sync')).toBeHidden();
-    await expect(popup.locator('#modes .levels__button--on')).toHaveText('Allow gameplay'); // YouTube's change stayed there
+    await expect(popup.locator('#modes .levels__button--on')).toHaveText('Gameplay'); // YouTube's change stayed there
   });
 
   test('a long list scrolls by itself and the sync box stays pinned at the bottom', async ({
@@ -322,4 +322,50 @@ test.describe('trusted tab', () => {
     await popup.fill('#search', 'Channel 12');
     await expect(popup.locator('.channel__name')).toHaveText(['Channel 12']);
   });
+});
+
+test('settings saved by an older version (all / news / story / off) still mean the same thing', async ({
+  context,
+  extensionId,
+  openFixture,
+}) => {
+  const popup = await context.newPage();
+
+  await popup.setViewportSize({ width: 340, height: 600 });
+  await popup.goto(POPUP(extensionId));
+  await expect(popup.locator('#levels .levels__button--on')).toHaveCount(1);
+
+  // what an older build wrote: level "story" (now Gameplay), trusted mode "all" (now Everything), X's own level "all"
+  await popup.evaluate(() => {
+    return new Promise(resolve => {
+      chrome.storage.sync.set(
+        { level: 'story', subsMode: 'all', xMode: 'off', global: false, sites: { x: { level: 'all' } } },
+        resolve,
+      );
+    });
+  });
+  await popup.reload();
+  await expect(popup.locator('#global')).not.toBeChecked();
+  await expect(siteLevel(popup, 'youtube')).toHaveText('Gameplay'); // inherited the shared old "story"
+  await expect(siteLevel(popup, 'x')).toHaveText('Nothing');
+
+  await popup.click('[data-view="trusted"]');
+  await popup.evaluate(() => {
+    return new Promise(resolve => {
+      chrome.storage.sync.set({ trusted: { '@a': 'A' }, xTrusted: { '@b': 'B' } }, resolve);
+    });
+  });
+  await expect(popup.locator('#modes .levels__button--on')).toHaveText('Everything');
+  await popup.click('[data-trust-site="x"]');
+  await expect(popup.locator('#modes .levels__button--on')).toHaveText('Same rules');
+
+  // and the page script reads the same old values: gameplay is shown on YouTube, hidden on X
+  const youtube = await openFixture({ level: 'story' });
+
+  await addTile(youtube, 'ytd-rich-item-renderer', 'GTA 6 gameplay first hour');
+  await expect
+    .poll(() => {
+      return stateOf(youtube, 0);
+    })
+    .toBe('ok');
 });
