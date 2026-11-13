@@ -1,9 +1,27 @@
-/* Reddit (new and old): a post or comment is hidden until the script judges it. opacity, not visibility or display.
-   A comment thread is one tile (replies are nested inside it), so replies follow their parent. */
+/* Reddit (new and old): a post, or a comment's own text, is hidden until the script judges it. opacity, not
+   visibility or display. */
 :root:not([data-gv-everything])
-  :is(shreddit-post, shreddit-comment, [data-testid='search-post-unit'], div.thing.link, div.thing.comment):not(
-    :is(shreddit-post, shreddit-comment, [data-testid='search-post-unit'], div.thing.link, div.thing.comment)
-      :is(shreddit-post, shreddit-comment, [data-testid='search-post-unit'], div.thing.link, div.thing.comment)
+  :is(
+    shreddit-post,
+    shreddit-comment [slot='comment'],
+    [data-testid='search-post-unit'],
+    div.thing.link,
+    div.thing.comment > div.entry .usertext-body
+  ):not(
+    :is(
+        shreddit-post,
+        shreddit-comment [slot='comment'],
+        [data-testid='search-post-unit'],
+        div.thing.link,
+        div.thing.comment > div.entry .usertext-body
+      )
+      :is(
+        shreddit-post,
+        shreddit-comment [slot='comment'],
+        [data-testid='search-post-unit'],
+        div.thing.link,
+        div.thing.comment > div.entry .usertext-body
+      )
   ):not([data-gv-ok]):not([data-gv-blocked]) {
   opacity: 0 !important;
   pointer-events: none !important;

@@ -18,13 +18,14 @@ globalThis.GV_WORDS = {
   // "jason"/"lucia" next to a strong story verb is a spoiler even without a GTA mention.
   // "ending" is left out on purpose: "Jason Statham movie ending" is not a GTA spoiler.
   names: [
-    /\b(jason|lucia)\b(?:\W+\w+){0,3}?\W+(dies|die|dead|death|killed|kills|betray\w*|survives|murdered)\b/,
-    /\b(death|killed|killing|betrayal|murder)\b(?:\W+\w+){0,3}?\W+(jason|lucia)\b/,
+    /\b(jason|lucia)\b(?:\W+\w+){0,3}?\W+(dies|die|dead|death|killed|kills|betray\w*|survives|murdered|sacrific\w*|executed|assassinat\w*)\b/,
+    /\b(death|killed|killing|betrayal|murder|sacrifice)\b(?:\W+\w+){0,3}?\W+(jason|lucia)\b/,
   ],
 
   // from the user's mute list; these also match with no GTA mention when panic mode is on
   generic: [
     /\bwho (dies|survives)\b/,
+    /\bkilled off\b/,
     /\ball endings\b/,
     /\bfinal cutscene\b/,
     /\bdeath scene\b/,
@@ -45,7 +46,7 @@ globalThis.GV_WORDS = {
     /\bendgame\b/,
     /\bfinale\b/,
     /\b(post[\s-])?credits\b/,
-    /\b(dies|die|died|dead|death|deaths|killed|murder\w*|betray\w*|sacrific\w*|surviv\w*)\b/,
+    /\bbetrayals?\b/,
     /\bplot\b/,
     /\btwists?\b/,
     /\bspoilers?\b/,
@@ -136,5 +137,70 @@ globalThis.GV_WORDS = {
     review: [
       /\b(reviews?|scores?|metacritic|ratings?|rated|reactions?|reacts?|breakdown|analysis|theor(y|ies)|opinions?)\b/,
     ],
+  },
+
+  // Words about death and sacrifice are everyday words ("sacrifice NPC car numbers", "red dead", "survival tips"), so on
+  // their own they prove nothing. They count as a story spoiler only when a word about a CHARACTER is close by (within
+  // four words, either side): "Jason sacrifices his life", "the main character dies", "he betrays her".
+  // This is a rule, not a list of examples: it covers every phrasing without adding cases one by one.
+  weak: {
+    // always about someone: dying, betrayal, sacrifice, survival
+    strict: [
+      'dies',
+      'die',
+      'died',
+      'dead',
+      'death',
+      'deaths',
+      'betray',
+      'betrays',
+      'betrayed',
+      'betraying',
+      'sacrifice',
+      'sacrifices',
+      'sacrificed',
+      'sacrificing',
+      'survive',
+      'survives',
+      'survived',
+    ],
+    // also used for gameplay ("killed 20 NPCs"), so a pronoun is not enough for these
+    loose: ['kill', 'kills', 'killed', 'killing', 'murder', 'murders', 'murdered', 'executed', 'assassinated'],
+    // who it is about
+    subjects: [
+      'jason',
+      'lucia',
+      'duval',
+      'caminos',
+      'character',
+      'characters',
+      'protagonist',
+      'protagonists',
+      'villain',
+      'villains',
+      'antagonist',
+      'boss',
+      'hero',
+      'heroine',
+      'someone',
+      'somebody',
+      'father',
+      'mother',
+      'brother',
+      'sister',
+      'wife',
+      'husband',
+      'partner',
+      'friend',
+      'friends',
+      'boyfriend',
+      'girlfriend',
+      'cousin',
+      'uncle',
+    ],
+    // enough for the strict words only: "he dies" is a spoiler, "he killed 20 NPCs" is just gameplay
+    pronouns: ['he', 'she', 'his', 'her', 'himself', 'herself'],
+    // titles that contain a death word but are not about death
+    ignore: [/\b(red dead|dead (island|space|rising|cells|by daylight)|walking dead|dying light)\b/g],
   },
 };

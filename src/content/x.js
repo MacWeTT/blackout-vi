@@ -126,6 +126,10 @@ GV.engine.start({
 
     return {
       isComment: isReply,
+      // only the reply's text is replaced; its author, media and actions stay
+      bodyOf: element => {
+        return element.querySelector("[data-testid='tweetText']");
+      },
       assumeGta: element => {
         return isReply(element) && aboutGta();
       },

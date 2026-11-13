@@ -8,6 +8,35 @@
     });
   };
 
+  // A death or sacrifice word is a story spoiler only when a word about a character is within four words of it.
+  // "Jason sacrifices his life" counts; "sacrifice NPC car numbers" does not. See WORDS.weak.
+  const weakStory = text => {
+    const { strict, loose, subjects, pronouns, ignore } = WORDS.weak;
+    let cleaned = text;
+
+    for (const pattern of ignore) {
+      cleaned = cleaned.replace(pattern, ' ');
+    }
+
+    const tokens = cleaned.match(/[a-z0-9]+/g) || [];
+
+    for (let i = 0; i < tokens.length; i++) {
+      const isStrict = strict.includes(tokens[i]);
+
+      if (!isStrict && !loose.includes(tokens[i])) {
+        continue;
+      }
+
+      for (let j = Math.max(0, i - 4); j <= Math.min(tokens.length - 1, i + 4); j++) {
+        if (j !== i && (subjects.includes(tokens[j]) || (isStrict && pronouns.includes(tokens[j])))) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
   // 'music' | 'trailer' | 'news' | 'details' | 'review' | 'content' (anything else): names the card, nothing more
   const kindOf = text => {
     for (const [kind, list] of Object.entries(WORDS.kinds)) {
@@ -41,7 +70,7 @@
       return { gta: false, bucket: spoiler ? 'story' : null };
     }
 
-    if (matchesAny(WORDS.story, normalized) || matchesAny(WORDS.generic, normalized)) {
+    if (matchesAny(WORDS.story, normalized) || matchesAny(WORDS.generic, normalized) || weakStory(normalized)) {
       return { gta: true, bucket: 'story' };
     }
 

@@ -15,7 +15,8 @@
     ytm-shorts-lockup-view-model,
     ytm-shorts-lockup-view-model-v2,
     ytd-reel-video-renderer,
-    ytd-comment-thread-renderer,
+    ytd-comment-view-model #content-text,
+    ytd-comment-renderer #content-text,
     ytm-video-with-context-renderer,
     ytm-compact-video-renderer
   ):not(
@@ -31,7 +32,8 @@
         ytm-shorts-lockup-view-model,
         ytm-shorts-lockup-view-model-v2,
         ytd-reel-video-renderer,
-        ytd-comment-thread-renderer,
+        ytd-comment-view-model #content-text,
+        ytd-comment-renderer #content-text,
         ytm-video-with-context-renderer,
         ytm-compact-video-renderer
       )
@@ -47,7 +49,8 @@
         ytm-shorts-lockup-view-model,
         ytm-shorts-lockup-view-model-v2,
         ytd-reel-video-renderer,
-        ytd-comment-thread-renderer,
+        ytd-comment-view-model #content-text,
+        ytd-comment-renderer #content-text,
         ytm-video-with-context-renderer,
         ytm-compact-video-renderer
       )

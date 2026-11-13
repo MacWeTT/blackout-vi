@@ -79,10 +79,10 @@ const cases = [
   ['Lucia Caminos betrayal', 'story'],
   ['GTA 6 betrayal', 'story'],
   ['GTA 6 killed off', 'story'],
-  ['GTA 6 sacrifice', 'story'],
+  ['GTA 6 sacrifice', 'content'], // an everyday word, not a story keyword
   ['Who dies in GTA 6', 'story'],
   ['Who survives in GTA VI', 'story'],
-  ['GTA 6 survivor', 'story'],
+  ['GTA 6 survivor', 'content'],
   ['GTA 6 shocking moment', 'story'],
   ['GTA 6 SHOCKING reveal', 'story'],
   ['GTA 6 secret revealed', 'story'],
@@ -103,6 +103,20 @@ const cases = [
   ['GTA 6 story theory', 'story'],
   ['GTA 6 story trailer', 'story'],
   ['GTA 6 story mode length', 'story'],
+  ['Rockstar had GTAVI running on PS5 Pro at 60fps but they did not want to sacrifice NPC car numbers', 'gameplay'], // a real false positive from Reddit
+  // death, sacrifice and survival words count as story only when they are about a character (the rule in WORDS.weak)
+  ['Jason sacrifices his life', 'story'],
+  ['GTA 6 Lucia sacrifices herself in the final scene', 'story'],
+  ['GTA 6: the main character dies', 'story'],
+  ['GTA 6 he sacrifices himself', 'story'],
+  ['GTA 6 Jason survives', 'story'],
+  ['Someone dies in GTA 6 trailer 3', 'story'],
+  ['GTA 6 survival tips', 'gameplay'],
+  ['How to survive the heat in GTA 6', 'gameplay'],
+  ['GTA 6 NPCs die in the heat gameplay', 'gameplay'],
+  ['GTA 6 he killed 20 NPCs gameplay', 'gameplay'],
+  ['GTA 6 killed my fps', 'content'],
+  ['GTA 6 vs Red Dead Redemption 2 character detail', 'content'],
   // --- gameplay ---
   ['GTA 6 gameplay', 'gameplay'],
   ['GTA 6 gameplay leak', 'story'],

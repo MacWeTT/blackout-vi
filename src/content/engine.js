@@ -148,22 +148,31 @@
 
     // The strip's words come from CSS too (data-kind), so they never feed back into the classifier. Only its
     // Show button reveals the comment.
-    const showStrip = (element, label) => {
-      let strip = element.querySelector(':scope > .gv-strip');
+    // body: when the tile is a whole comment (author, text, actions), only its text body is replaced, so the author,
+    // votes and actions stay visible and usable. Without a body the tile is the text itself and the strip fills it.
+    const showStrip = (element, label, body) => {
+      let strip = element.querySelector('.gv-strip');
 
       if (!strip) {
         strip = document.createElement('div');
         strip.className = 'gv-strip';
         strip.innerHTML = '<span class="gv-strip__kind"></span><button class="gv-strip__show" type="button"></button>';
-        element.append(strip);
+
+        if (body) {
+          body.before(strip);
+        } else {
+          element.append(strip);
+        }
       }
 
+      body?.setAttribute('data-gv-body', '');
       strip.querySelector('.gv-strip__kind').dataset.kind = label;
     };
 
     const hideCard = element => {
       element.querySelector(':scope > .gv-card')?.remove();
-      element.querySelector(':scope > .gv-strip')?.remove();
+      element.querySelector('.gv-strip')?.remove();
+      element.querySelector('[data-gv-body]')?.removeAttribute('data-gv-body');
     };
 
     const resumeIn = element => {
@@ -181,6 +190,7 @@
         element.removeAttribute('data-gv-blocked');
         element.removeAttribute('data-gv-shown');
         element.removeAttribute('data-gv-comment');
+        element.removeAttribute('data-gv-bodied');
         sizer.unobserve(element);
         hideCard(element);
         delete element.__gvSig;
@@ -192,10 +202,11 @@
         element.setAttribute('data-gv-blocked', '');
         element.setAttribute('data-gv-label', info.label);
         element.removeAttribute('data-gv-ok');
-        element.toggleAttribute('data-gv-comment', Boolean(info.comment));
+        element.toggleAttribute('data-gv-comment', Boolean(info.comment) && !info.body);
+        element.toggleAttribute('data-gv-bodied', Boolean(info.comment) && Boolean(info.body));
 
         if (info.comment) {
-          showStrip(element, info.strip);
+          showStrip(element, info.strip, info.body);
         } else {
           sizer.observe(element);
           showCard(element, info.label, info.channel, info.trusted);
@@ -213,6 +224,7 @@
       element.removeAttribute('data-gv-blocked');
       element.removeAttribute('data-gv-shown');
       element.removeAttribute('data-gv-comment');
+      element.removeAttribute('data-gv-bodied');
       sizer.unobserve(element);
       hideCard(element);
       resumeIn(element);
@@ -228,8 +240,12 @@
       // Fast path for the backstop sweep and for churn inside a tile: same text, same settings, nothing to do.
       // An attribute change (aria-label, href...) forces a full re-read because textContent does not show it.
       const raw = element.textContent;
+      const lostCover =
+        element.hasAttribute('data-gv-blocked') &&
+        !element.hasAttribute('data-gv-shown') &&
+        !element.querySelector('.gv-card,.gv-strip');
 
-      if (!force && element.__gvStamp === stamp && element.__gvRaw === raw) {
+      if (!force && !lostCover && element.__gvStamp === stamp && element.__gvRaw === raw) {
         return;
       }
 
@@ -256,7 +272,8 @@
       const keepHidden = GV.keepsStoryHidden(mode) && result.bucket === 'story';
       const blocked = GV.isBlocked(result, level) && !(trusted && !keepHidden);
       const label = result.bucket === 'content' ? KIND_LABELS[result.kind] || LABELS.content : LABELS[result.bucket];
-      const info = { label, strip: STRIP_LABELS[result.bucket], channel, trusted, comment };
+      const body = comment ? hooks.bodyOf?.(element) || null : null;
+      const info = { label, strip: STRIP_LABELS[result.bucket], channel, trusted, comment, body };
 
       // a revealed tile keeps its reveal while it stays blocked
       if (blocked && element.hasAttribute('data-gv-blocked')) {
@@ -264,7 +281,7 @@
 
         if (!element.hasAttribute('data-gv-shown')) {
           if (comment) {
-            showStrip(element, info.strip);
+            showStrip(element, info.strip, body);
           } else {
             showCard(element, info.label, channel, trusted);
           }
@@ -508,16 +525,24 @@
         return;
       }
 
+      const bodied = tile.hasAttribute('data-gv-bodied');
+
+      // only the text of a bodied comment is covered: its author, media and actions keep working as usual
+      if (bodied && !event.target.closest('.gv-strip')) {
+        return;
+      }
+
       event.preventDefault();
       event.stopImmediatePropagation();
 
       // a comment reveals only from its Show button, so a stray click in a thread never shows a spoiler
-      if (tile.hasAttribute('data-gv-comment') && !event.target.closest('.gv-strip__show')) {
+      if ((bodied || tile.hasAttribute('data-gv-comment')) && !event.target.closest('.gv-strip__show')) {
         return;
       }
 
       tile.setAttribute('data-gv-shown', '');
-      tile.querySelector(':scope > .gv-strip')?.remove();
+      tile.querySelector('.gv-strip')?.remove();
+      tile.querySelector('[data-gv-body]')?.removeAttribute('data-gv-body');
       resumeIn(tile);
     };
 

@@ -5,7 +5,7 @@
 /* A blocked tile hides everything except our card. The card is a real element (built by the script)
    so its text can have a hierarchy; its words come from CSS so they never leak into the tile's own text. */
 :root:not([data-gv-everything])
-  [data-gv-blocked]:not([data-gv-shown])
+  [data-gv-blocked]:not([data-gv-shown]):not([data-gv-bodied])
   :not(.gv-card, .gv-card *, .gv-strip, .gv-strip *) {
   visibility: hidden !important;
 }
@@ -185,4 +185,9 @@
 
 .gv-strip__show::before {
   content: 'Show';
+}
+
+/* A comment inside a bigger tile (author, text, actions): only its text body is replaced by the strip. */
+:root:not([data-gv-everything]) [data-gv-body] {
+  display: none !important;
 }

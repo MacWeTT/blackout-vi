@@ -7,9 +7,10 @@ const POST = OLD_REDDIT ? 'div.thing.link' : 'shreddit-post';
 GV.engine.start({
   site: 'reddit',
   trust: { list: 'redditTrusted', mode: 'redditMode' }, // never used: Reddit has no trusted list
+  // a comment's tile is its own text body, so replies (their own comments) are judged on their own
   tiles: OLD_REDDIT
-    ? ['div.thing.link', 'div.thing.comment']
-    : ['shreddit-post', 'shreddit-comment', "[data-testid='search-post-unit']"],
+    ? ['div.thing.link', 'div.thing.comment > div.entry .usertext-body']
+    : ['shreddit-post', "shreddit-comment [slot='comment']", "[data-testid='search-post-unit']"],
   channelOf: () => {
     return { key: '', name: '' };
   },
@@ -39,7 +40,7 @@ GV.engine.start({
     };
 
     const isComment = element => {
-      return OLD_REDDIT ? element.classList.contains('comment') : element.localName === 'shreddit-comment';
+      return OLD_REDDIT ? Boolean(element.closest('.thing.comment')) : element.matches("[slot='comment']");
     };
 
     return {

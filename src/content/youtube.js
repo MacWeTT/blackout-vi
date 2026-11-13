@@ -14,7 +14,8 @@ GV.engine.start({
     'ytm-shorts-lockup-view-model',
     'ytm-shorts-lockup-view-model-v2',
     'ytd-reel-video-renderer',
-    'ytd-comment-thread-renderer',
+    'ytd-comment-view-model #content-text',
+    'ytd-comment-renderer #content-text',
     'ytm-video-with-context-renderer',
     'ytm-compact-video-renderer',
   ],
@@ -209,13 +210,13 @@ GV.engine.start({
     return {
       // comments take their GTA context from the video being watched
       assumeGta: element => {
-        return element.localName === 'ytd-comment-thread-renderer' && Boolean(watch.r?.gta);
+        return element.id === 'content-text' && Boolean(watch.r?.gta);
       },
       isComment: element => {
-        return element.localName === 'ytd-comment-thread-renderer';
+        return element.id === 'content-text';
       },
       skipTrust: element => {
-        return element.localName === 'ytd-comment-thread-renderer';
+        return element.id === 'content-text';
       },
       isPlayerHidden: video => {
         return Boolean(watchState) && Boolean(video.closest('ytd-player,#movie_player'));
