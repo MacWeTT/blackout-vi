@@ -11,7 +11,7 @@ const MODE_DESCRIPTIONS = {
   all: 'Ones you trust skip the shield completely, spoilers included.',
 };
 
-// Per-app rules. Reddit has no trusted list: it only gets its own level and panic switch.
+// Per-app rules (when Global settings is off). Reddit has no trusted list: it only gets a level and panic.
 const APPS = {
   youtube: { label: 'YouTube', icon: '../../assets/brands/youtube.svg' },
   x: { label: 'X', icon: '../../assets/brands/x.svg' },
@@ -68,7 +68,7 @@ let state = {
   syncedAt: 0,
   xSyncedAt: 0,
   syncError: '',
-  view: 'rules', // 'rules' | 'trusted' | 'settings'
+  view: 'rules', // 'rules' | 'trusted'
   trustSite: 'youtube',
 };
 
@@ -117,90 +117,38 @@ const setActive = (buttons, isOn) => {
   });
 };
 
-const renderRules = () => {
-  $('scopeChip').textContent = state.global ? 'All sites' : 'Per app';
-  $('globalRules').hidden = !state.global;
-  $('appSummary').hidden = state.global;
+const iconOf = app => {
+  const icon = document.createElement('span');
 
-  if (state.global) {
-    $('desc').textContent = DESCRIPTIONS[state.level];
-    setActive($('levels').querySelectorAll('[data-level]'), button => {
-      return button.dataset.level === state.level;
-    });
+  icon.className = 'ico';
+  icon.innerHTML = `<img src="${APPS[app].icon}" width="16" height="16" alt="${APPS[app].label}">`;
 
-    return;
-  }
-
-  const rows = $('summaryRows');
-
-  rows.replaceChildren();
-
-  for (const [app, config] of Object.entries(APPS)) {
-    const row = document.createElement('button');
-
-    row.type = 'button';
-    row.className = 'box box--button box--gap';
-    row.dataset.summary = app;
-    row.innerHTML = '<span class="box__text"><b></b><small></small></span><span class="box__arrow">&rarr;</span>';
-    row.querySelector('b').textContent = config.label;
-    row.querySelector('small').textContent = LEVEL_NAMES[ruleOf(app).level];
-    row.onclick = () => {
-      state.view = 'settings';
-      render();
-    };
-    rows.append(row);
-  }
+  return icon;
 };
 
 const handleAppChange = (app, values) => {
   save({ sites: { ...state.sites, [app]: { ...state.sites[app], ...values } } });
 };
 
-const renderSettings = () => {
-  $('global').checked = state.global;
-  $('globalHint').textContent = state.global
-    ? 'One set of rules for YouTube, X and Reddit'
-    : 'Each app has its own rules';
-  $('panic').checked = state.panic;
-  $('panicBox').hidden = !state.global;
-  $('globalNote').hidden = !state.global;
-  $('appCards').hidden = state.global;
+// one level control per app, each on a single row beside its logo
+const renderSiteRules = () => {
+  const container = $('siteRules');
 
-  const cards = $('appCards');
+  container.replaceChildren();
 
-  cards.replaceChildren();
+  for (const app of Object.keys(APPS)) {
+    const row = document.createElement('div');
+    const bar = document.createElement('div');
 
-  if (state.global) {
-    return;
-  }
-
-  for (const [app, config] of Object.entries(APPS)) {
-    const { level, panic } = ruleOf(app);
-    const card = document.createElement('div');
-
-    card.className = 'card';
-    card.dataset.app = app;
-    card.innerHTML =
-      '<div class="card__top"><span class="ico"></span><b></b><small>Panic</small>' +
-      '<input class="switch app-panic" type="checkbox"></div>' +
-      '<div class="levels levels--mini"></div>';
-    card.querySelector('.ico').innerHTML = `<img src="${config.icon}" width="16" height="16" alt="">`;
-    card.querySelector('b').textContent = config.label;
-
-    const toggle = card.querySelector('.app-panic');
-
-    toggle.checked = panic;
-    toggle.onchange = () => {
-      handleAppChange(app, { panic: toggle.checked });
-    };
-
-    const bar = card.querySelector('.levels');
+    row.className = 'siterow';
+    row.dataset.siteRow = app;
+    bar.className = 'levels levels--mini';
 
     for (const [value, name] of Object.entries(LEVEL_NAMES)) {
       const button = document.createElement('button');
 
       button.type = 'button';
-      button.className = 'levels__button' + (value === level ? ' levels__button--on' : '');
+      button.className = 'levels__button' + (value === ruleOf(app).level ? ' levels__button--on' : '');
       button.dataset.appLevel = value;
       button.textContent = name;
       button.onclick = () => {
@@ -209,8 +157,57 @@ const renderSettings = () => {
       bar.append(button);
     }
 
-    cards.append(card);
+    row.append(iconOf(app), bar);
+    container.append(row);
   }
+};
+
+// panic: one switch when global, otherwise a small switch per app
+const renderPanicSites = () => {
+  const container = $('panicSites');
+
+  container.replaceChildren();
+
+  for (const app of Object.keys(APPS)) {
+    const item = document.createElement('label');
+    const toggle = document.createElement('input');
+
+    item.className = 'mini';
+    item.dataset.panicSite = app;
+    toggle.type = 'checkbox';
+    toggle.className = 'switch switch--small';
+    toggle.checked = ruleOf(app).panic;
+    toggle.onchange = () => {
+      handleAppChange(app, { panic: toggle.checked });
+    };
+    item.append(iconOf(app), toggle);
+    container.append(item);
+  }
+};
+
+const renderRules = () => {
+  $('global').checked = state.global;
+  $('globalHint').textContent = state.global
+    ? 'One set of rules for YouTube, X and Reddit'
+    : 'Each app has its own rules';
+  $('scopeChip').textContent = state.global ? 'All sites' : 'Per app';
+  $('globalRules').hidden = !state.global;
+  $('siteRules').hidden = state.global;
+  $('panic').hidden = !state.global;
+  $('panicSites').hidden = state.global;
+
+  if (state.global) {
+    $('desc').textContent = DESCRIPTIONS[state.level];
+    $('panic').checked = state.panic;
+    setActive($('levels').querySelectorAll('[data-level]'), button => {
+      return button.dataset.level === state.level;
+    });
+
+    return;
+  }
+
+  renderSiteRules();
+  renderPanicSites();
 };
 
 const handleChannelToggle = (row, on) => {
@@ -302,19 +299,14 @@ const render = () => {
 
   $('rules').hidden = view !== 'rules';
   $('trusted').hidden = view !== 'trusted';
-  $('settings').hidden = view !== 'settings';
-  $('tabs').hidden = view === 'settings';
-  $('gear').classList.toggle('gear--on', view === 'settings');
   document.querySelectorAll('[data-view]').forEach(button => {
     button.classList.toggle('tabs__tab--on', button.dataset.view === view);
   });
 
   if (view === 'rules') {
     renderRules();
-  } else if (view === 'trusted') {
-    renderTrusted();
   } else {
-    renderSettings();
+    renderTrusted();
   }
 };
 
@@ -331,11 +323,6 @@ const handleLevelClick = event => {
 
 const handleViewClick = event => {
   state.view = event.currentTarget.dataset.view;
-  render();
-};
-
-const handleGear = () => {
-  state.view = state.view === 'settings' ? 'rules' : 'settings';
   render();
 };
 
@@ -413,17 +400,13 @@ document.querySelectorAll('[data-trust-site]').forEach(button => {
 document.querySelectorAll('[data-mode]').forEach(button => {
   button.onclick = handleModeClick;
 });
-$('gear').onclick = handleGear;
-$('back').onclick = handleGear;
 $('global').onchange = () => {
   save({ global: $('global').checked });
 };
 $('panic').onchange = () => {
   save({ panic: $('panic').checked });
 };
-$('search').oninput = () => {
-  renderTrusted();
-};
+$('search').oninput = renderTrusted;
 $('sync').onclick = handleSync;
 chrome.storage.onChanged.addListener(refresh);
 refresh();

@@ -19,6 +19,10 @@ const level = popup => {
   return popup.locator('#levels .levels__button--on');
 };
 
+const siteLevel = (popup, app) => {
+  return popup.locator(`[data-site-row="${app}"] .levels__button--on`);
+};
+
 // the popup must never need a scrollbar: its content has to fit in 600px
 const expectNoScroll = async (popup, label) => {
   const height = await popup.evaluate(() => {
@@ -43,14 +47,48 @@ const seedSubs = (popup, count) => {
 };
 
 test.describe('layout', () => {
-  test('defaults: Rules tab, News only, all sites, a gear for Settings', async ({ context, extensionId }) => {
+  test('defaults: Rules tab, Global settings on, News only, no gear or settings page', async ({
+    context,
+    extensionId,
+  }) => {
     const popup = await openPopup(context, extensionId);
 
     await expect(popup.locator('[data-view="rules"]')).toHaveClass(/tabs__tab--on/);
+    await expect(popup.locator('#global')).toBeChecked();
     await expect(level(popup)).toHaveText('News only');
     await expect(popup.locator('#scopeChip')).toHaveText('All sites');
-    await expect(popup.locator('#gear')).toBeVisible();
+    await expect(popup.locator('#siteRules')).toBeHidden();
+    await expect(popup.locator('#gear')).toHaveCount(0);
     await expectNoScroll(popup, 'rules');
+  });
+
+  test('order on Rules: Global settings first, the level control, Panic mode last', async ({
+    context,
+    extensionId,
+  }) => {
+    const popup = await openPopup(context, extensionId);
+
+    for (const global of [true, false]) {
+      if (!global) {
+        await popup.uncheck('#global');
+        await expect(popup.locator('#siteRules')).toBeVisible();
+      }
+
+      const order = await popup.evaluate(() => {
+        const top = selector => {
+          return document.querySelector(selector).getBoundingClientRect().top;
+        };
+        const rules = document.getElementById('globalRules').hidden ? '#siteRules' : '#globalRules';
+
+        return [top('#global'), top(rules), top('#panicBox')];
+      });
+
+      expect(order, `global ${global}`).toEqual(
+        [...order].sort((a, b) => {
+          return a - b;
+        }),
+      );
+    }
   });
 
   test('the picture is only in the header band, so the palm trees show', async ({ context, extensionId }) => {
@@ -71,26 +109,22 @@ test.describe('layout', () => {
     expect(look.headerHeight).toBeLessThanOrEqual(110);
   });
 
-  test('no screen needs scrolling, even with a long list and per-app cards', async ({ context, extensionId }) => {
+  test('no screen needs scrolling: per-app rules, a long trusted list', async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
-    await seedSubs(popup, 30);
-    await popup.click('[data-view="trusted"]');
-    await expect(popup.locator('.channel')).toHaveCount(30);
-    await expectNoScroll(popup, 'trusted with a long list');
-
-    await popup.click('#gear');
     await popup.uncheck('#global');
-    await expect(popup.locator('.card')).toHaveCount(3);
-    await expectNoScroll(popup, 'settings with per-app cards');
+    await expect(popup.locator('.siterow')).toHaveCount(3);
+    await expect(popup.locator('.mini')).toHaveCount(3);
+    await expectNoScroll(popup, 'rules with three per-app controls');
 
-    await popup.click('#back');
-    await expect(popup.locator('#summaryRows .box')).toHaveCount(3);
-    await expectNoScroll(popup, 'rules, global off');
+    await seedSubs(popup, 40);
+    await popup.click('[data-view="trusted"]');
+    await expect(popup.locator('.channel')).toHaveCount(40);
+    await expectNoScroll(popup, 'trusted with a long list');
   });
 });
 
-test.describe('rules and settings', () => {
+test.describe('rules', () => {
   test('the level is saved and restored', async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
@@ -102,40 +136,33 @@ test.describe('rules and settings', () => {
     await expect(level(popup)).toHaveText('No story');
   });
 
-  test('Settings holds Global settings and Panic mode, and the gear and back both return', async ({
-    context,
-    extensionId,
-  }) => {
+  test('panic mode with global on is one switch, saved and restored', async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
-    await popup.click('#gear');
-    await expect(popup.locator('#settings')).toBeVisible();
-    await expect(popup.locator('#tabs')).toBeHidden();
-    await expect(popup.locator('#global')).toBeChecked();
-    await expect(popup.locator('#panic')).not.toBeChecked();
+    await expect(popup.locator('#panic')).toBeVisible();
+    await expect(popup.locator('#panicSites')).toBeHidden();
     await popup.check('#panic');
 
-    await popup.click('#back');
-    await expect(popup.locator('#rules')).toBeVisible();
-
     await popup.reload();
-    await popup.click('#gear');
     await expect(popup.locator('#panic')).toBeChecked();
-    await popup.click('#gear');
-    await expect(popup.locator('#rules')).toBeVisible();
   });
 
-  test('with Global settings off every app gets its own card, Reddit included, with no "coming soon"', async ({
+  test('Global settings off swaps the one control for three, Reddit included, and nothing says "coming soon"', async ({
     context,
     extensionId,
   }) => {
     const popup = await openPopup(context, extensionId);
 
-    await popup.click('#gear');
     await popup.uncheck('#global');
-    await expect(popup.locator('.card')).toHaveCount(3);
-    await expect(popup.locator('#panicBox')).toBeHidden(); // panic is per app now
-    await expect(popup.locator('[data-app="reddit"] .app-panic')).toBeVisible();
+    await expect(popup.locator('#globalRules')).toBeHidden();
+    await expect(popup.locator('#siteRules')).toBeVisible();
+    await expect(popup.locator('#scopeChip')).toHaveText('Per app');
+    await expect(popup.locator('.siterow')).toHaveCount(3);
+    await expect(popup.locator('[data-site-row="reddit"]')).toBeVisible();
+
+    // panic mode is last, and is three small switches now
+    await expect(popup.locator('#panic')).toBeHidden();
+    await expect(popup.locator('[data-panic-site]')).toHaveCount(3);
 
     const text = await popup.evaluate(() => {
       return document.body.innerText.toLowerCase();
@@ -143,21 +170,22 @@ test.describe('rules and settings', () => {
 
     expect(text).not.toContain('coming soon');
 
-    await popup.locator('[data-app="x"] [data-app-level="all"]').click();
-    await popup.locator('[data-app="reddit"] .app-panic').check();
-    await expect(popup.locator('[data-app="x"] .levels__button--on')).toHaveText('Nothing');
-    await expect(popup.locator('[data-app="youtube"] .levels__button--on')).toHaveText('News only');
-
-    // Rules shows each app's current level
-    await popup.click('#back');
-    await expect(popup.locator('#scopeChip')).toHaveText('Per app');
-    await expect(popup.locator('[data-summary="x"] small')).toHaveText('Nothing');
-    await expect(popup.locator('[data-summary="youtube"] small')).toHaveText('News only');
+    await popup.locator('[data-site-row="x"] [data-app-level="all"]').click();
+    await popup.locator('[data-panic-site="reddit"] input').check();
+    await expect(siteLevel(popup, 'x')).toHaveText('Nothing');
+    await expect(siteLevel(popup, 'youtube')).toHaveText('News only');
+    await expect(siteLevel(popup, 'reddit')).toHaveText('News only');
 
     await popup.reload();
-    await popup.click('#gear');
-    await expect(popup.locator('[data-app="x"] .levels__button--on')).toHaveText('Nothing');
-    await expect(popup.locator('[data-app="reddit"] .app-panic')).toBeChecked();
+    await expect(popup.locator('#global')).not.toBeChecked();
+    await expect(siteLevel(popup, 'x')).toHaveText('Nothing');
+    await expect(popup.locator('[data-panic-site="reddit"] input')).toBeChecked();
+    await expect(popup.locator('[data-panic-site="x"] input')).not.toBeChecked();
+
+    // turning Global settings back on goes back to the one shared control
+    await popup.check('#global');
+    await expect(popup.locator('#globalRules')).toBeVisible();
+    await expect(popup.locator('#siteRules')).toBeHidden();
   });
 
   test('global settings reach both YouTube and X', async ({ context, extensionId, openFixture }) => {
@@ -199,9 +227,8 @@ test.describe('rules and settings', () => {
 
     const popup = await openPopup(context, extensionId);
 
-    await popup.click('#gear');
     await popup.uncheck('#global');
-    await popup.locator('[data-app="youtube"] [data-app-level="story"]').click(); // gameplay is allowed on YouTube
+    await popup.locator('[data-site-row="youtube"] [data-app-level="story"]').click(); // gameplay is allowed on YouTube
 
     await expect
       .poll(
