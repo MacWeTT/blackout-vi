@@ -1,4 +1,5 @@
 // Pure and synchronous: it runs inside a MutationObserver callback, before paint.
+// A story result carries `why`: the word or rule that flagged it, so a surprising flag can be explained at a glance.
 (() => {
   const WORDS = globalThis.GV_WORDS;
 
@@ -8,8 +9,22 @@
     });
   };
 
+  // the text a pattern matched, or ''
+  const firstMatch = (list, text) => {
+    for (const pattern of list) {
+      const hit = pattern.exec(text);
+
+      if (hit) {
+        return hit[0];
+      }
+    }
+
+    return '';
+  };
+
   // A death or sacrifice word is a story spoiler only when a word about a character is within four words of it.
   // "Jason sacrifices his life" counts; "sacrifice NPC car numbers" does not. See WORDS.weak.
+  // Returns why it flagged, or '' when it did not.
   const weakStory = text => {
     const { strict, loose, subjects, pronouns, ignore, leak, leak_hardware: hardware } = WORDS.weak;
     let cleaned = text;
@@ -24,16 +39,17 @@
       // a leak about the game, not a leaking pipe
       if (leak.words.includes(tokens[i])) {
         const around = tokens.slice(Math.max(0, i - 3), i).concat(tokens.slice(i + 1, i + 4));
+        const about = around.find(word => {
+          return leak.about.includes(word);
+        });
 
         if (
-          around.some(word => {
-            return leak.about.includes(word);
-          }) &&
+          about &&
           !around.some(word => {
             return hardware.includes(word);
           })
         ) {
-          return true;
+          return `"${tokens[i]}" next to "${about}"`;
         }
       }
 
@@ -45,12 +61,19 @@
 
       for (let j = Math.max(0, i - 4); j <= Math.min(tokens.length - 1, i + 4); j++) {
         if (j !== i && (subjects.includes(tokens[j]) || (isStrict && pronouns.includes(tokens[j])))) {
-          return true;
+          return `"${tokens[i]}" next to "${tokens[j]}"`;
         }
       }
     }
 
-    return false;
+    return '';
+  };
+
+  // why a text counts as story in normal mode: a plain story word, a strong phrase, or a weak word next to a character
+  const storyReason = text => {
+    const hit = firstMatch(WORDS.story, text) || firstMatch(WORDS.generic, text);
+
+    return hit ? `"${hit}"` : weakStory(text);
   };
 
   // 'music' | 'trailer' | 'news' | 'details' | 'review' | 'content' (anything else): names the card, nothing more
@@ -64,6 +87,41 @@
     return 'content';
   };
 
+  // Panic mode. Near GTA VI (the game, Rockstar, Jason, Lucia...) ANY spoiler-ish word flags the text as story: the plain
+  // story words, death/sacrifice/betrayal/survival words, every leak word, and the extra panic words, with no check on
+  // what they are next to. Away from GTA VI only the strong spoiler phrases ("who dies", "all endings") flag it.
+  const classifyPanic = (text, gta) => {
+    const { about, words } = WORDS.panic;
+    const { strict, loose, leak } = WORDS.weak;
+
+    if (!gta && !matchesAny(about, text)) {
+      const phrase = firstMatch(WORDS.generic, text);
+
+      return phrase ? { gta: false, bucket: 'story', why: `phrase "${phrase}"` } : { gta: false, bucket: null };
+    }
+
+    const tokens = text.match(/[a-z0-9]+/g) || [];
+    const word = tokens.find(token => {
+      return words.includes(token) || strict.includes(token) || loose.includes(token) || leak.words.includes(token);
+    });
+
+    if (word) {
+      return { gta: true, bucket: 'story', why: `panic: "${word}"` };
+    }
+
+    const why = firstMatch(WORDS.panic.phrases, text) || storyReason(text).replace(/^"|"$/g, '');
+
+    if (why) {
+      return { gta: true, bucket: 'story', why: `panic: ${why}` };
+    }
+
+    if (matchesAny(WORDS.gameplay, text)) {
+      return { gta: true, bucket: 'gameplay' };
+    }
+
+    return { gta: true, bucket: 'content', kind: kindOf(text) };
+  };
+
   // bucket: 'story' | 'gameplay' | 'content' | null (not about GTA VI)
   // Severity order: story > gameplay > content. The highest match wins.
   const classify = (text, options = {}) => {
@@ -74,20 +132,27 @@
       .toLowerCase()
       .replace(/(\d)(?=[a-z])/g, '$1 ');
 
-    if (matchesAny(WORDS.names, normalized)) {
-      return { gta: true, bucket: 'story' };
+    const name = firstMatch(WORDS.names, normalized);
+
+    if (name) {
+      return { gta: true, bucket: 'story', why: `character: "${name}"` };
     }
 
     const gta = assumeGta || matchesAny(WORDS.gta, normalized);
 
-    if (!gta) {
-      const spoiler = panic && matchesAny(WORDS.generic, normalized);
-
-      return { gta: false, bucket: spoiler ? 'story' : null };
+    // Panic mode: anything that could be a spoiler is flagged. It never flags less than normal mode does.
+    if (panic) {
+      return classifyPanic(normalized, gta);
     }
 
-    if (matchesAny(WORDS.story, normalized) || matchesAny(WORDS.generic, normalized) || weakStory(normalized)) {
-      return { gta: true, bucket: 'story' };
+    if (!gta) {
+      return { gta: false, bucket: null };
+    }
+
+    const why = storyReason(normalized);
+
+    if (why) {
+      return { gta: true, bucket: 'story', why };
     }
 
     if (matchesAny(WORDS.gameplay, normalized)) {

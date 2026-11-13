@@ -12,6 +12,8 @@ globalThis.GV_WORDS = {
     // the two protagonists by full name, or as a pair
     /\bjason duval\b/,
     /\blucia caminos\b/,
+    // the other named characters from the official trailers: a full name is enough to say "this is about GTA VI"
+    /\b(cal hampton|boobie ike|raul bautista|brian heder|dre.?quan priest|real dimez)\b/,
     /\bjason\b\W+(?:and|&)\W+lucia\b/,
   ],
 
@@ -171,6 +173,13 @@ globalThis.GV_WORDS = {
       'lucia',
       'duval',
       'caminos',
+      'hampton',
+      'boobie',
+      'ike',
+      'bautista',
+      'heder',
+      'dimez',
+      'priest',
       'character',
       'characters',
       'protagonist',
@@ -261,5 +270,84 @@ globalThis.GV_WORDS = {
     ],
     // titles that contain a death word but are not about death
     ignore: [/\b(red dead|dead (island|space|rising|cells|by daylight)|walking dead|dying light)\b/g],
+  },
+
+  // Reddit: which subreddits count as "GTA / GTA VI" and which as "gaming". Matched on the subreddit name without "r/",
+  // lowercased, anywhere in the name. Deliberately broad: the user turns these on to scroll Reddit without worry, so
+  // a few extra subreddits being hidden is fine and one missed one is not.
+  subreddits: {
+    gta: [/gta/, /grand.?theft.?auto/, /rockstar/, /vice.?city/, /leonida/],
+    gaming: [
+      /gam(e|es|ing|er|ers)/,
+      /(playstation|ps[2345]|xbox|nintendo|switch|steam|pcmr|pcmasterrace|esports|speedrun)/,
+      /(minecraft|fortnite|valorant|overwatch|apexlegends|warzone|callofduty|eldenring|zelda|pokemon|witcher|cyberpunk)/,
+      /(skyrim|fallout|reddead|bloodborne|baldursgate|starfield|csgo|leagueoflegends|dota|rocketleague|fifa|madden)/,
+      /(tarkov|destiny|diablo|worldofwarcraft|rpg|fps|mmo|indiegames|patientgamers)/,
+    ],
+  },
+
+  // PANIC MODE. A missed spoiler is the worst outcome, a false alarm is fine. With panic on there are no "is it really
+  // about the game" checks: if the text is anywhere near GTA VI (`about`), any one word below is enough to flag it as a
+  // story spoiler, whatever it is next to. "Liquid leaked" next to "GTA 6" is flagged on purpose.
+  panic: {
+    // what counts as "near GTA VI" in panic mode: the game, the studio, the places, and the two protagonists by first name
+    about: [
+      /\bgta\b/,
+      /\bgrand theft auto\b/,
+      /\brockstar\b/,
+      /\bvice city\b/,
+      /\bleonida\b/,
+      /\b(jason|lucia|duval|caminos|hampton|boobie|bautista|heder|dimez)\b/,
+    ],
+    // phrases that flag it. A bare "end" or "final" is too common ("on their end", "final trailer"), so they are phrases.
+    phrases: [
+      /\b(the end|ends? with|ends? up|final (scene|act|boss|chapter|cutscene|level)|last (scene|act|chapter))\b/,
+    ],
+    // any of these flags it, on top of every story word, death word, sacrifice word and leak word in the lists above
+    words: [
+      'ends',
+      'ended',
+      'shocking',
+      'shocked',
+      'shock',
+      'twist',
+      'twists',
+      'reveal',
+      'reveals',
+      'revealed',
+      'secret',
+      'secrets',
+      'surprise',
+      'surprising',
+      'unexpected',
+      'emotional',
+      'cry',
+      'cried',
+      'crying',
+      'tears',
+      'heartbreaking',
+      'sad',
+      'spoil',
+      'spoiled',
+      'canon',
+      'dying',
+      'betrayal',
+      'betrayals',
+      'survival',
+      'survivor',
+      'survivors',
+      'kill',
+      'kills',
+      'killer',
+      'killers',
+      'murdered',
+      'murders',
+      'murderer',
+      'assassin',
+      'assassination',
+      'gone',
+      'goodbye',
+      'farewell',
+    ],
   },
 };
