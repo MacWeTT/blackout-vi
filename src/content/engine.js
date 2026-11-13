@@ -89,7 +89,8 @@
 
       let text = parts.join(' ');
 
-      for (const node of element.querySelectorAll('[aria-label],[title],[alt]')) {
+      // the tile itself too (a custom element can carry its title as an attribute), and anything the site adds
+      for (const node of [element, ...element.querySelectorAll('[aria-label],[title],[alt]')]) {
         const attrs = ['aria-label', 'title', 'alt'].map(name => {
           return node.getAttribute(name) || '';
         });
@@ -97,7 +98,7 @@
         text += ' ' + attrs.join(' ');
       }
 
-      return clean(text);
+      return clean(text + ' ' + (adapter.extraText?.(element) || ''));
     };
 
     const showToast = (message, onUndo) => {

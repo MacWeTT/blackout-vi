@@ -455,3 +455,118 @@ test.describe('Reddit', () => {
       .toBe('ok');
   });
 });
+
+test.describe('Reddit, title only in an attribute', () => {
+  test('a post whose title is only an attribute is still judged', async ({ openFixture }) => {
+    const page = await openFixture({}, 'reddit');
+
+    await page.evaluate(() => {
+      const post = document.createElement('shreddit-post');
+
+      post.setAttribute('post-title', 'GTA 6 ending explained'); // nothing inside it at all
+      document.getElementById('feed').append(post);
+    });
+    await expect
+      .poll(() => {
+        return stateOf(page, 0);
+      })
+      .toBe('blocked');
+  });
+});
+
+// ---------------------------------------------------------------- old Reddit (old.reddit.com)
+
+const addOldPost = (page, title) => {
+  return page.evaluate(text => {
+    const post = document.createElement('div');
+
+    post.className = 'thing link';
+    post.innerHTML = `<a class="title">${text}</a>`;
+    document.getElementById('feed').append(post);
+  }, title);
+};
+
+const addOldComment = (page, text, reply = '') => {
+  return page.evaluate(
+    ([content, nested]) => {
+      const comment = document.createElement('div');
+
+      comment.className = 'thing comment';
+      comment.innerHTML = `<div class="entry">${content}</div>${nested ? `<div class="child"><div class="thing comment"><div class="entry reply">${nested}</div></div></div>` : ''}`;
+      document.getElementById('feed').append(comment);
+    },
+    [text, reply],
+  );
+};
+
+test.describe('old Reddit', () => {
+  test('a post is judged and gets a card', async ({ openFixture }) => {
+    const page = await openFixture({}, 'oldreddit');
+
+    await addOldPost(page, 'GTA 6 gameplay first hour is insane');
+    await addOldPost(page, 'Best pasta recipe');
+    await expect
+      .poll(() => {
+        return stateOf(page, 0);
+      })
+      .toBe('blocked');
+    await expect
+      .poll(() => {
+        return stateOf(page, 1);
+      })
+      .toBe('ok');
+    await expect(page.locator('.gv-card')).toHaveCount(1);
+  });
+
+  test('a comment under a GTA VI post is a strip, and a reply folds with its parent', async ({ openFixture }) => {
+    const page = await openFixture({}, 'oldreddit');
+
+    await addOldPost(page, 'GTA 6 trailer 3');
+    await addOldComment(page, 'the ending was wild');
+    await addOldComment(page, 'what a trailer', 'wait until you see the ending');
+    await addOldComment(page, 'love the music');
+    await expect
+      .poll(() => {
+        return stateOf(page, 1);
+      })
+      .toBe('blocked');
+    await expect
+      .poll(() => {
+        return stateOf(page, 2);
+      })
+      .toBe('blocked');
+    await expect
+      .poll(() => {
+        return stateOf(page, 3);
+      })
+      .toBe('ok'); // content: shown at the default level
+    await expect(page.locator('.thing.comment > .gv-strip')).toHaveCount(2);
+    await expect(page.locator('.reply')).toBeHidden();
+    expect(await stripText(page)).toContain('Potential story spoiler hidden');
+  });
+
+  test('a comment under an unrelated post is left alone, and Show reveals one that was hidden', async ({
+    openFixture,
+  }) => {
+    const calm = await openFixture({}, 'oldreddit');
+
+    await addOldPost(calm, 'Best pasta recipe');
+    await addOldComment(calm, 'the ending was wild');
+    await expect
+      .poll(() => {
+        return stateOf(calm, 1);
+      })
+      .toBe('ok');
+
+    const page = await openFixture({}, 'oldreddit');
+
+    await addOldPost(page, 'GTA 6 trailer 3');
+    await addOldComment(page, 'the ending was wild');
+    await expect(page.locator('.gv-strip')).toHaveCount(1);
+    await page.locator('.gv-strip__kind').click();
+    await expect(page.locator('.gv-strip')).toHaveCount(1);
+    await page.locator('.gv-strip__show').click();
+    await expect(page.locator('.gv-strip')).toHaveCount(0);
+    await expect(page.locator('.entry')).toBeVisible();
+  });
+});

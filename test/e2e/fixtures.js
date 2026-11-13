@@ -15,8 +15,9 @@ const X_HTML = `<!doctype html><html><head><title>fixture</title>
 </head><body><div id="feed"></div></body></html>`;
 
 const REDDIT_URL = 'https://www.reddit.com/__fixture';
+const OLD_REDDIT_URL = 'https://old.reddit.com/__fixture';
 const REDDIT_HTML = `<!doctype html><html><head><title>fixture</title>
-<style>shreddit-post,shreddit-comment{display:block;width:420px;margin:6px;padding:6px;background:#eee;color:#000}</style>
+<style>shreddit-post,shreddit-comment,div.thing{display:block;width:420px;margin:6px;padding:6px;background:#eee;color:#000}</style>
 </head><body><div id="feed"></div></body></html>`;
 
 // the Following page lists three accounts as UserCells
@@ -45,6 +46,9 @@ const test = base.test.extend({
     // a post's own page on X: the tweet being read, then its replies
     await context.route('https://x.com/someone/status/*', route => {
       route.fulfill({ contentType: 'text/html', body: X_HTML });
+    });
+    await context.route('https://old.reddit.com/__fixture*', route => {
+      route.fulfill({ contentType: 'text/html', body: REDDIT_HTML });
     });
     await context.route('https://www.reddit.com/__fixture*', route => {
       route.fulfill({ contentType: 'text/html', body: REDDIT_HTML });
@@ -110,7 +114,7 @@ const test = base.test.extend({
         // the content script rewrites this cache, so always reset it for a clean start
         localStorage.setItem('gv_settings', JSON.stringify({ level: 'content', panic: false, ...value }));
       }, settings);
-      const urls = { x: X_URL, reddit: REDDIT_URL };
+      const urls = { x: X_URL, reddit: REDDIT_URL, oldreddit: OLD_REDDIT_URL };
 
       await page.goto(urls[site] || FIXTURE_URL);
 
