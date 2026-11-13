@@ -53,3 +53,34 @@ test('live: a blocked tile can be revealed', async ({ context }) => {
   await expect(tile).toHaveAttribute('data-gv-shown', '');
   expect(page.url()).toContain('/results');
 });
+
+test('live: trusting a channel from a card marks it trusted, and the mark survives a reload', async ({ context }) => {
+  test.setTimeout(120000);
+
+  const page = await search(context, 'gta 6 ending explained');
+  const badge = page.locator('ytd-video-renderer[data-gv-blocked] .gv-card__trust').first();
+
+  await badge.scrollIntoViewIfNeeded();
+
+  const key = await badge.getAttribute('data-key');
+  const content = () => {
+    return page.evaluate(selector => {
+      return getComputedStyle(document.querySelector(selector), '::before').content;
+    }, `.gv-card__trust[data-key="${key}"]`);
+  };
+
+  await badge.click();
+  await expect.poll(content).toContain('Trusted');
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('ytd-video-renderer', { timeout: 30000 });
+  await page.waitForTimeout(3000);
+
+  const trustedAfter = await page.evaluate(trustedKey => {
+    return [...document.querySelectorAll('.gv-card__trust')].some(item => {
+      return item.dataset.key === trustedKey && item.hasAttribute('data-trusted');
+    });
+  }, key);
+
+  expect(trustedAfter).toBe(true);
+});

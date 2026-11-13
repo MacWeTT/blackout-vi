@@ -1,7 +1,7 @@
 const DESCRIPTIONS = {
   all: 'Hides every GTA VI post, video and comment.',
-  news: 'Allows news, trailers, release info, score and OST. Hides story and gameplay.',
-  story: 'Hides story, endings, deaths and missions. Gameplay and news are allowed.',
+  news: 'Shows only news, trailers, release info, score and OST. Hides story and gameplay.',
+  story: 'Shows news and gameplay. Hides story, endings, deaths and missions.',
   off: 'Protection off. Everything shows.',
 };
 const MODE_DESCRIPTIONS = {

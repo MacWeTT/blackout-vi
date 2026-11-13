@@ -23,7 +23,7 @@ test('defaults: global settings on, News, panic off, a trusted row per site', as
 
   await expect(popup.locator('#global')).toBeChecked();
   await expect(popup.locator('#sites')).toBeHidden();
-  await expect(on(popup, 'level')).toHaveText('News');
+  await expect(on(popup, 'level')).toHaveText('News only');
   await expect(popup.locator('#panic')).not.toBeChecked();
   await expect(popup.locator('[data-manage]')).toHaveText([/YouTube channels/, /X accounts/]);
 });
@@ -54,11 +54,11 @@ test('level and panic are saved and restored', async ({ context, extensionId }) 
 
   await popup.click('[data-level="story"]');
   await popup.check('#panic');
-  await expect(on(popup, 'level')).toHaveText('Story');
+  await expect(on(popup, 'level')).toHaveText('No story');
   await expect(popup.locator('#desc')).toContainText('endings');
 
   await popup.reload();
-  await expect(on(popup, 'level')).toHaveText('Story');
+  await expect(on(popup, 'level')).toHaveText('No story');
   await expect(popup.locator('#panic')).toBeChecked();
 });
 
@@ -74,17 +74,17 @@ test('unchecking global settings shows the three site logos; each site keeps its
 
   await popup.click('[data-site="x"]');
   await popup.click('[data-level="all"]');
-  await expect(on(popup, 'level')).toHaveText('Block all');
+  await expect(on(popup, 'level')).toHaveText('Nothing');
   await expect(popup.locator('[data-manage]')).toHaveText([/X accounts/]);
 
   await popup.click('[data-site="youtube"]');
-  await expect(on(popup, 'level')).toHaveText('News'); // YouTube did not change
+  await expect(on(popup, 'level')).toHaveText('News only'); // YouTube did not change
   await expect(popup.locator('[data-manage]')).toHaveText([/YouTube channels/]);
 
   await popup.reload();
   await expect(popup.locator('#global')).not.toBeChecked();
   await popup.click('[data-site="x"]');
-  await expect(on(popup, 'level')).toHaveText('Block all');
+  await expect(on(popup, 'level')).toHaveText('Nothing');
 });
 
 test('Reddit has no trusted list: the rules apply to the whole site', async ({ context, extensionId }) => {
@@ -95,7 +95,7 @@ test('Reddit has no trusted list: the rules apply to the whole site', async ({ c
   await expect(popup.locator('[data-manage]')).toHaveCount(0);
   await expect(popup.locator('#siteNote')).toContainText('no joined-community feature');
   await popup.click('[data-level="story"]');
-  await expect(on(popup, 'level')).toHaveText('Story');
+  await expect(on(popup, 'level')).toHaveText('No story');
 });
 
 test('global settings reach both YouTube and X', async ({ context, extensionId, openFixture }) => {
