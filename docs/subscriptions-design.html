@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Subscriptions design</title>
+    <style>
+      :root {
+        --bg: url('../assets/images/background.jpg');
+        --ink: #1d0a33;
+        --accent: linear-gradient(135deg, #7f3fe0, #e83fb4 55%, #ffa94d);
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 28px; background: #0f0b16; color: #fff; font: 14px/1.4 system-ui, sans-serif; }
+      h1 { margin: 0 0 4px; font-size: 20px; }
+      h2 { margin: 34px 0 6px; font-size: 16px; }
+      .note { margin: 0 0 18px; color: #a99bbd; max-width: 760px; }
+      .row { display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start; }
+      figure { margin: 0; }
+      figcaption { margin-bottom: 8px; font-weight: 700; }
+      figcaption span { display: block; font-weight: 400; font-size: 12px; color: #a99bbd; max-width: 340px; }
+
+      /* popup, same look as the real one */
+      .pop { width: 340px; overflow: hidden; border-radius: 14px; color: var(--ink); background: #2b1055 var(--bg) center top / cover; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55); }
+      .poster { padding: 18px 16px 0; text-align: center; }
+      .poster img { width: 104px; filter: drop-shadow(0 4px 14px rgba(20, 0, 40, 0.5)); }
+      .sheet { margin-top: 14px; padding: 16px 18px 16px; border-radius: 22px 22px 0 0; background: #fff; }
+      .sheet h3 { margin: 0 0 10px; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: #8a4fb8; }
+      .seg { display: grid; grid-template-columns: repeat(4, 1fr); padding: 3px; border-radius: 999px; background: #f1e8fa; }
+      .seg.three { grid-template-columns: repeat(3, 1fr); }
+      .seg button { padding: 6px 0; border: 0; border-radius: 999px; background: none; font: 600 12px system-ui; color: #6b4a8a; }
+      .seg .on { background: var(--accent); color: #fff; box-shadow: 0 2px 10px rgba(232, 63, 180, 0.4); }
+      .desc { margin: 10px 0; font-size: 13px; color: #4a3560; }
+      .box { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #f7f1fc; }
+      .box + .box { margin-top: 8px; }
+      .grow { flex: 1; }
+      .box b { display: block; font-size: 13px; }
+      .box small { display: block; font-size: 11px; color: #6b4a8a; }
+      .tog { flex: none; width: 36px; height: 20px; border-radius: 999px; background: #cdb9e3; position: relative; }
+      .tog::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+      .tog.on { background: var(--accent); }
+      .tog.on::after { left: 18px; }
+      .chk { width: 15px; height: 15px; accent-color: #e83fb4; }
+      .link { margin-top: 10px; font-size: 12px; color: #8a4fb8; font-weight: 600; }
+      .pill { padding: 5px 12px; border-radius: 999px; border: 1px solid #d9c4ee; background: #fff; font: 600 11px system-ui; color: #6b4a8a; }
+      .ch { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid #eee3f7; }
+      .ch:last-child { border: 0; }
+      .av { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); }
+      .ch b { font-size: 13px; }
+      .ch small { margin-left: auto; font-size: 11px; color: #8a4fb8; font-weight: 600; }
+      .search { width: 100%; padding: 8px 12px; margin-bottom: 8px; border: 1px solid #e3d3f2; border-radius: 999px; font: 13px system-ui; color: #6b4a8a; background: #fff; }
+      .scroll { max-height: 190px; overflow: hidden; }
+
+      /* tile card with the trust action */
+      .card { position: relative; width: 440px; height: 248px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; color: #fff; text-shadow: 0 1px 6px rgba(20, 0, 40, 0.8); background: linear-gradient(rgba(25, 5, 45, 0.35), rgba(25, 5, 45, 0.35)), var(--bg) center / cover; }
+      .card img { height: 62px; filter: drop-shadow(0 2px 8px rgba(20, 0, 40, 0.6)); }
+      .card b { font-size: 17px; }
+      .hint { padding: 0.35em 1em; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 999px; background: rgba(20, 5, 40, 0.5); font-size: 11px; font-weight: 600; text-shadow: none; }
+      .trust { font-size: 11px; opacity: 0.9; text-decoration: underline; text-underline-offset: 3px; }
+      .btns { display: flex; gap: 8px; }
+      .hint.alt { background: rgba(255, 255, 255, 0.92); color: #2b1055; border-color: transparent; }
+      .corner { position: absolute; top: 10px; right: 10px; padding: 4px 10px; border-radius: 999px; background: rgba(20, 5, 40, 0.55); border: 1px solid rgba(255, 255, 255, 0.3); font-size: 10.5px; font-weight: 600; text-shadow: none; }
+      .toast { margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: #1d1330; border: 1px solid #3a2358; font-size: 12px; width: 440px; }
+    </style>
+  </head>
+  <body>
+    <h1>Subscriptions: trusted channels</h1>
+    <p class="note">
+      Two ways in. <b>Per channel</b>: a link on the card, one click and that channel is never hidden again.
+      <b>All subscriptions</b>: a popup switch that trusts your whole list, read locally from your YouTube subscriptions page.
+      A video whose channel can't be identified is judged as normal, so a missing match always means "stays hidden".
+    </p>
+
+    <h2>Popup, main screen</h2>
+    <div class="row">
+      <figure>
+        <figcaption>P1 · Switch + safety option <span>Closest to what you asked: one switch for all subscriptions, plus "still hide story spoilers" so real spoilers never slip through.</span></figcaption>
+        <div class="pop">
+          <div class="poster"><img src="../assets/images/gta-vi-logo.png" alt="" /></div>
+          <div class="sheet">
+            <h3>Spoiler Shield</h3>
+            <div class="seg"><button>Block all</button><button class="on">News</button><button>Story</button><button>Off</button></div>
+            <p class="desc">Allows news, trailers, release info, score and OST. Hides story and gameplay.</p>
+            <div class="box"><input class="chk" type="checkbox" /><div class="grow"><b>Panic mode</b><small>Also hides generic spoiler phrases ("who dies", "all endings") on any video</small></div></div>
+            <div class="box"><div class="grow"><b>Trust my subscriptions</b><small>Their videos skip the shield</small></div><div class="tog on"></div></div>
+            <div class="box"><input class="chk" type="checkbox" checked /><div class="grow"><b>Still hide story spoilers</b><small>Even from trusted channels</small></div></div>
+            <div class="link">Manage trusted channels (14) →</div>
+          </div>
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>P2 · Three-way control <span>A second control just for subscriptions: shield applies as normal, skip news and gameplay only, or skip everything. Fewer toggles, more choice.</span></figcaption>
+        <div class="pop">
+          <div class="poster"><img src="../assets/images/gta-vi-logo.png" alt="" /></div>
+          <div class="sheet">
+            <h3>Spoiler Shield</h3>
+            <div class="seg"><button>Block all</button><button class="on">News</button><button>Story</button><button>Off</button></div>
+            <p class="desc">Allows news, trailers, release info, score and OST. Hides story and gameplay.</p>
+            <div class="box"><input class="chk" type="checkbox" /><div class="grow"><b>Panic mode</b><small>Also hides generic spoiler phrases ("who dies", "all endings") on any video</small></div></div>
+            <h3 style="margin-top: 14px">My subscriptions</h3>
+            <div class="seg three"><button>Same rules</button><button class="on">Allow gameplay</button><button>Allow all</button></div>
+            <p class="desc" style="margin-bottom: 0">Subscribed channels may show news and gameplay; story spoilers stay hidden.</p>
+            <div class="link">Manage trusted channels (14) →</div>
+          </div>
+        </div>
+      </figure>
+    </div>
+
+    <h2>Popup, manage screen</h2>
+    <div class="row">
+      <figure>
+        <figcaption>M1 · Channel list <span>Opens from "Manage". Sync pulls your subscriptions; manually trusted channels sit in the same list; each row can be switched off.</span></figcaption>
+        <div class="pop">
+          <div class="poster"><img src="../assets/images/gta-vi-logo.png" alt="" /></div>
+          <div class="sheet">
+            <h3>← Trusted channels</h3>
+            <div class="search">Search channels</div>
+            <div class="scroll">
+              <div class="ch"><span class="av"></span><b>Rockstar Games</b><small>subscribed</small><div class="tog on"></div></div>
+              <div class="ch"><span class="av"></span><b>TGG</b><small>subscribed</small><div class="tog on"></div></div>
+              <div class="ch"><span class="av"></span><b>Digital Foundry</b><small>subscribed</small><div class="tog on"></div></div>
+              <div class="ch"><span class="av"></span><b>SpawnPoint</b><small>added by you</small><div class="tog on"></div></div>
+              <div class="ch"><span class="av"></span><b>Cyberpunk 2077</b><small>subscribed</small><div class="tog"></div></div>
+            </div>
+            <div class="box" style="margin-top: 10px"><div class="grow"><b>Synced 2 min ago</b><small>14 channels from your subscriptions</small></div><span class="pill">Sync now</span></div>
+          </div>
+        </div>
+      </figure>
+    </div>
+
+    <h2>On the card</h2>
+    <div class="row">
+      <figure>
+        <figcaption>C1 · Text link under the pill <span>Quiet, doesn't compete with the main action.</span></figcaption>
+        <div class="card"><img src="../assets/images/gta-vi-logo.png" alt="" /><b>Gameplay spoiler</b><span class="hint">Click to reveal</span><span class="trust">Always show Digital Foundry</span></div>
+      </figure>
+      <figure>
+        <figcaption>C2 · Two pills side by side <span>Equal weight: reveal once, or trust the channel for good.</span></figcaption>
+        <div class="card"><img src="../assets/images/gta-vi-logo.png" alt="" /><b>Gameplay spoiler</b><div class="btns"><span class="hint">Reveal once</span><span class="hint alt">Trust Digital Foundry</span></div></div>
+      </figure>
+      <figure>
+        <figcaption>C3 · Corner badge <span>Card stays clean; a small "Trust channel" tag sits top-right. Easy to miss, hard to hit by accident.</span></figcaption>
+        <div class="card"><span class="corner">+ Trust Digital Foundry</span><img src="../assets/images/gta-vi-logo.png" alt="" /><b>Gameplay spoiler</b><span class="hint">Click to reveal</span></div>
+        <div class="toast">✓ Digital Foundry trusted. <u>Undo</u></div>
+      </figure>
+    </div>
+  </body>
+</html>

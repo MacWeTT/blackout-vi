@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="poster">
+      <img class="poster__logo" src="../../assets/images/gta-vi-logo.png" alt="Grand Theft Auto VI" />
+    </header>
+
+    <main class="sheet" id="main">
+      <h1 class="sheet__title">Spoiler Shield</h1>
+      <div class="levels" id="levels">
+        <button class="levels__button" data-level="all">Block all</button>
+        <button class="levels__button" data-level="news">News</button>
+        <button class="levels__button" data-level="story">Story</button>
+        <button class="levels__button" data-level="off">Off</button>
+      </div>
+      <p class="sheet__desc" id="desc"></p>
+
+      <h2 class="sheet__heading">My subscriptions</h2>
+      <div class="levels levels--three" id="subs">
+        <button class="levels__button" data-subs="same">Same rules</button>
+        <button class="levels__button" data-subs="gameplay">Allow gameplay</button>
+        <button class="levels__button" data-subs="all">Allow all</button>
+      </div>
+      <p class="sheet__desc sheet__desc--small" id="subsDesc"></p>
+      <button class="link" id="manage" type="button">Manage trusted channels</button>
+
+      <label class="box">
+        <input class="box__check" id="panic" type="checkbox" />
+        <span class="box__text">
+          <b>Panic mode</b>
+          <small
+            >Also hides generic spoiler phrases ("who dies", "all endings") on any video, even without a GTA
+            mention</small
+          >
+        </span>
+      </label>
+    </main>
+
+    <main class="sheet" id="channels" hidden>
+      <button class="link link--back" id="back" type="button">&larr; Trusted channels</button>
+      <input class="search" id="search" type="search" placeholder="Search channels" />
+      <div class="list" id="list"></div>
+      <div class="box">
+        <span class="box__text">
+          <b id="syncTitle">Not synced yet</b>
+          <small id="syncDetail">Syncs through an open YouTube tab</small>
+        </span>
+        <button class="pill" id="sync" type="button">Sync now</button>
+      </div>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

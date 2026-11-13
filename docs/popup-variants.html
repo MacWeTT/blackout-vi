@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Popup variants</title>
+    <style>
+      :root {
+        --bg: url('../assets/images/background.jpg');
+        --ink: #1d0a33;
+        --pink: #ff8fb8;
+        --orange: #ffa94d;
+        --grad: linear-gradient(135deg, #7f3fe0, #e83fb4 55%, #ffa94d);
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 32px; background: #14101c; color: #fff; font: 14px/1.5 system-ui, sans-serif; }
+      h1 { margin: 0 0 4px; font-size: 20px; }
+      .note { margin: 0 0 28px; color: #a99bbd; }
+      .grid { display: flex; flex-wrap: wrap; gap: 36px; align-items: flex-start; }
+      figure { margin: 0; }
+      figcaption { margin-bottom: 10px; font-weight: 700; }
+      figcaption span { display: block; font-weight: 400; font-size: 12px; color: #a99bbd; }
+      .pop { width: 340px; overflow: hidden; border-radius: 14px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+      p { margin: 0; }
+      .desc { font-size: 13px; }
+      .hint { font-size: 11px; opacity: 0.75; }
+      .panic { display: flex; align-items: center; gap: 10px; }
+      .panic input { accent-color: var(--pink); width: 16px; height: 16px; }
+
+      /* A: refined glass, centred logo, segmented control */
+      .a { background: #2b1055 var(--bg) center / cover; padding: 18px 16px 16px; text-align: center; }
+      .a img { width: 92px; filter: drop-shadow(0 3px 10px rgba(20, 0, 40, 0.55)); }
+      .a .sub { margin: 6px 0 14px; font-size: 12px; text-shadow: 0 1px 6px rgba(20, 0, 40, 0.8); }
+      .a .card { padding: 14px; text-align: left; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(25, 5, 45, 0.66); backdrop-filter: blur(12px); }
+      .seg { display: grid; grid-template-columns: repeat(4, 1fr); padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); }
+      .seg button { padding: 6px 0; border: 0; border-radius: 999px; background: none; color: #e6d6f2; font: 600 12px system-ui; }
+      .seg .on { background: var(--grad); color: #fff; box-shadow: 0 2px 10px rgba(232, 63, 180, 0.5); }
+      .a .desc { margin: 12px 0; color: #f1e6f7; min-height: 40px; }
+      .a .panic { padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.2); }
+
+      /* B: poster, light card, big logo */
+      .b { background: #2b1055 var(--bg) center / cover; padding: 22px 16px 0; text-align: center; }
+      .b img { width: 130px; filter: drop-shadow(0 4px 14px rgba(20, 0, 40, 0.5)); }
+      .b .sheet { margin: 18px -16px 0; padding: 18px 18px 16px; border-radius: 22px 22px 0 0; background: #fff; color: var(--ink); text-align: left; }
+      .b h2 { margin: 0 0 12px; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; color: #8a4fb8; }
+      .b .seg { background: #f1e8fa; }
+      .b .seg button { color: #6b4a8a; }
+      .b .desc { margin: 12px 0; color: #4a3560; min-height: 40px; }
+      .b .panic { padding: 10px 12px; border-radius: 12px; background: #f7f1fc; }
+      .b .hint { margin-top: 8px; color: #6b4a8a; }
+
+      /* C: cards per level */
+      .c { background: #160a26; }
+      .c .banner { position: relative; height: 112px; background: var(--bg) center 62% / cover; }
+      .c .banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 30%, #160a26); }
+      .c .banner img { position: absolute; z-index: 1; left: 16px; bottom: 6px; width: 74px; filter: drop-shadow(0 2px 8px #000a); }
+      .c .banner b { position: absolute; z-index: 1; left: 100px; bottom: 14px; font-size: 15px; letter-spacing: 1px; }
+      .c .body { padding: 6px 14px 14px; display: grid; gap: 8px; }
+      .opt { display: flex; gap: 10px; padding: 9px 12px; border-radius: 12px; border: 1px solid #3a2358; background: #21103a; }
+      .opt i { flex: none; width: 14px; height: 14px; margin-top: 4px; border-radius: 50%; border: 2px solid #7d5ca3; }
+      .opt b { display: block; font-size: 13px; }
+      .opt span { font-size: 11px; color: #b9a6d0; }
+      .opt.on { border-color: transparent; background: linear-gradient(#21103a, #21103a) padding-box, var(--grad) border-box; border: 1px solid transparent; }
+      .opt.on i { border-color: var(--pink); background: radial-gradient(var(--pink) 45%, transparent 50%); }
+      .c .panic { margin-top: 4px; padding: 0 2px; }
+
+      /* D: compact */
+      .d { background: #fff; color: var(--ink); }
+      .d .top { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg) center 40% / cover; }
+      .d .top img { width: 38px; }
+      .d .top b { font-size: 14px; letter-spacing: 1px; text-shadow: 0 1px 6px #0008; color: #fff; }
+      .d .top em { margin-left: auto; padding: 3px 10px; border-radius: 999px; font: 700 11px system-ui; background: #ffffffcc; color: #5a2a8a; }
+      .d .body { padding: 14px; }
+      .d input[type='range'] { width: 100%; accent-color: #e83fb4; }
+      .d .stops { display: flex; justify-content: space-between; font-size: 11px; color: #7a5f96; }
+      .d .stops .on { color: var(--ink); font-weight: 700; }
+      .d .desc { margin: 10px 0 12px; color: #4a3560; }
+      .d .panic { padding-top: 10px; border-top: 1px solid #eadcf6; }
+    </style>
+  </head>
+  <body>
+    <h1>Popup variants</h1>
+    <p class="note">Static mock-ups at the real width (340px). Pick one, or mix: e.g. A's look with C's level cards.</p>
+    <div class="grid">
+      <figure>
+        <figcaption>A · Glass, segmented <span>Your current look, tidied: big logo, pill control instead of a slider.</span></figcaption>
+        <div class="pop a">
+          <img src="../assets/images/gta-vi-logo.png" alt="" />
+          <p class="sub">Spoiler Shield · YouTube</p>
+          <div class="card">
+            <div class="seg"><button>Block all</button><button class="on">News</button><button>Story</button><button>Off</button></div>
+            <p class="desc">Allows news, trailers, release info, score and OST. Hides story and gameplay.</p>
+            <label class="panic"><input type="checkbox" /> <b>Panic mode</b></label>
+            <p class="hint" style="margin: 4px 0 0 26px">Also hides generic spoiler phrases on any video.</p>
+          </div>
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>B · Poster sheet <span>Art on top, clean light sheet below. Most readable.</span></figcaption>
+        <div class="pop b">
+          <img src="../assets/images/gta-vi-logo.png" alt="" />
+          <div class="sheet">
+            <h2>Spoiler Shield</h2>
+            <div class="seg"><button>Block all</button><button class="on">News</button><button>Story</button><button>Off</button></div>
+            <p class="desc">Allows news, trailers, release info, score and OST. Hides story and gameplay.</p>
+            <label class="panic"><input type="checkbox" /> <b>Panic mode</b></label>
+            <p class="hint">Also hides generic spoiler phrases ("who dies", "all endings") on any video.</p>
+          </div>
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>C · Level cards <span>Each level is a card with its own description, so nothing is guessed from a slider.</span></figcaption>
+        <div class="pop c">
+          <div class="banner"><img src="../assets/images/gta-vi-logo.png" alt="" /><b>SPOILER SHIELD</b></div>
+          <div class="body">
+            <div class="opt"><i></i><div><b>Block all</b><span>Hides every GTA VI video and comment.</span></div></div>
+            <div class="opt on"><i></i><div><b>News only</b><span>Trailers, release info, score, OST. Hides story and gameplay.</span></div></div>
+            <div class="opt"><i></i><div><b>Story only</b><span>Hides endings, deaths, missions.</span></div></div>
+            <div class="opt"><i></i><div><b>Off</b><span>Everything shows.</span></div></div>
+            <label class="panic"><input type="checkbox" /> <b>Panic mode</b> <span class="hint">· hides generic spoiler phrases</span></label>
+          </div>
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>D · Compact <span>Slim header strip, light body, keeps the slider. Shortest popup.</span></figcaption>
+        <div class="pop d">
+          <div class="top"><img src="../assets/images/gta-vi-logo.png" alt="" /><b>SPOILER SHIELD</b><em>News only</em></div>
+          <div class="body">
+            <input type="range" min="0" max="3" value="1" />
+            <div class="stops"><span>Block all</span><span class="on">News</span><span>Story</span><span>Off</span></div>
+            <p class="desc">Allows news, trailers, release info, score and OST. Hides story and gameplay.</p>
+            <label class="panic"><input type="checkbox" /> <b>Panic mode</b></label>
+          </div>
+        </div>
+      </figure>
+    </div>
+  </body>
+</html>
