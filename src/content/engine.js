@@ -304,7 +304,9 @@
       flush();
     };
 
-    new MutationObserver(handleMutations).observe(root, {
+    const observer = new MutationObserver(handleMutations);
+
+    observer.observe(root, {
       subtree: true,
       childList: true,
       characterData: true,
@@ -336,7 +338,25 @@
       scrollTimer = setTimeout(idle, 200);
     };
 
+    // After the extension is reloaded or updated, tabs that were already open keep this script but lose the
+    // chrome.* APIs ("Extension context invalidated"). Such an orphan stops its timers and observer quietly;
+    // cards still reveal on click, which needs no extension API.
+    const alive = () => {
+      try {
+        return Boolean(chrome.runtime?.id);
+      } catch {
+        return false;
+      }
+    };
+
     const handleVisibility = () => {
+      if (!alive()) {
+        observer.disconnect();
+        clearInterval(timer);
+
+        return;
+      }
+
       if (!document.hidden) {
         idle();
       }
@@ -345,7 +365,7 @@
     addEventListener('scroll', handleScroll, { passive: true });
     addEventListener('popstate', idle);
     document.addEventListener('visibilitychange', handleVisibility);
-    setInterval(handleVisibility, 2000);
+    const timer = setInterval(handleVisibility, 2000);
 
     const apply = incoming => {
       settings = { ...settings, ...incoming };
@@ -369,6 +389,12 @@
 
     // "Trust this channel": saved to sync storage and applied here at once, with an undo.
     const trustChannel = channel => {
+      if (!alive()) {
+        showToast('Spoiler Shield was reloaded. Refresh this tab to use Trust.', () => {});
+
+        return;
+      }
+
       const key = GV.entryKey(channel);
       const name = channel.name || channel.key;
       const trusted = { ...settings.trusted, [key]: name };
@@ -388,6 +414,12 @@
     };
 
     const untrustChannel = channel => {
+      if (!alive()) {
+        showToast('Spoiler Shield was reloaded. Refresh this tab to use Trust.', () => {});
+
+        return;
+      }
+
       const same = (key, name) => {
         return (channel.key && key === channel.key) || name.toLowerCase() === (channel.name || '').toLowerCase();
       };
