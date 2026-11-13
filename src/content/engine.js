@@ -15,7 +15,7 @@
   const STRIP_LABELS = {
     story: 'Potential story spoiler hidden',
     gameplay: 'Potential gameplay spoiler hidden',
-    content: 'Potential spoiler hidden',
+    content: 'GTA VI content hidden',
   };
   const KEY = 'gv_settings';
 
@@ -25,9 +25,22 @@
     const modeKey = adapter.trust.mode;
     const root = document.documentElement;
 
+    root.setAttribute('data-gv-site', adapter.site);
+
+    // Only the newest copy of this script may act on a page. A copy started later (after a reload or an update, or by the
+    // background worker) writes its own token; an older copy that sees a different token stops at once. Two copies with
+    // different settings would otherwise undo each other's cards forever.
+    const token = Math.random().toString(36).slice(2);
+
+    root.setAttribute('data-gv-engine', token);
+
+    const superseded = () => {
+      return root.getAttribute('data-gv-engine') !== token;
+    };
+
     // Resolved settings for this site. localStorage is a synchronous cache so the right level applies before
     // chrome.storage answers.
-    let settings = { level: 'content', panic: false, mode: 'gameplay', trusted: {} };
+    let settings = { level: 'content', panic: false, mode: 'gameplay', trusted: {}, extra: {} };
     let trust = GV.buildTrust({ trusted: settings.trusted, subsMode: settings.mode });
 
     try {
@@ -124,17 +137,18 @@
 
     // The card is a real element so its text can have a hierarchy; its words come from CSS (data-kind),
     // so they never become part of the tile's own text and never feed back into the classifier.
-    const showCard = (element, label, channel, trusted) => {
+    const showCard = (element, label, channel, trusted, why = '') => {
       let card = element.querySelector(':scope > .gv-card');
 
       if (!card) {
         card = document.createElement('div');
         card.className = 'gv-card';
-        card.innerHTML = `<span class="gv-card__logo"></span><span class="gv-card__kind"></span><span class="gv-card__hint"></span><span class="gv-card__trust"></span>`;
+        card.innerHTML = `<span class="gv-card__logo"></span><span class="gv-card__kind"></span><span class="gv-card__hint"></span><span class="gv-card__why"></span><span class="gv-card__trust"></span>`;
         element.append(card);
       }
 
       card.querySelector('.gv-card__kind').dataset.kind = label;
+      card.querySelector('.gv-card__why').dataset.why = why;
 
       // the badge only appears when we can say who this is
       const badge = card.querySelector('.gv-card__trust');
@@ -191,6 +205,7 @@
         element.removeAttribute('data-gv-shown');
         element.removeAttribute('data-gv-comment');
         element.removeAttribute('data-gv-bodied');
+        element.removeAttribute('data-gv-why');
         sizer.unobserve(element);
         hideCard(element);
         delete element.__gvSig;
@@ -201,6 +216,7 @@
       if (blocked) {
         element.setAttribute('data-gv-blocked', '');
         element.setAttribute('data-gv-label', info.label);
+        element.setAttribute('data-gv-why', info.why || '');
         element.removeAttribute('data-gv-ok');
         element.toggleAttribute('data-gv-comment', Boolean(info.comment) && !info.body);
         element.toggleAttribute('data-gv-bodied', Boolean(info.comment) && Boolean(info.body));
@@ -209,7 +225,7 @@
           showStrip(element, info.strip, info.body);
         } else {
           sizer.observe(element);
-          showCard(element, info.label, info.channel, info.trusted);
+          showCard(element, info.label, info.channel, info.trusted, info.why);
         }
 
         for (const video of element.querySelectorAll('video')) {
@@ -225,6 +241,7 @@
       element.removeAttribute('data-gv-shown');
       element.removeAttribute('data-gv-comment');
       element.removeAttribute('data-gv-bodied');
+      element.removeAttribute('data-gv-why');
       sizer.unobserve(element);
       hideCard(element);
       resumeIn(element);
@@ -262,18 +279,24 @@
       const comment = Boolean(hooks.isComment?.(element));
       const channel = hooks.skipTrust?.(element) ? { key: '', name: '' } : adapter.channelOf(element, clean);
       const trusted = GV.isTrusted(trust, channel);
-      const signature = [text, assumeGta, comment, channel.key, channel.name, trusted].join('|');
 
-      if (element.__gvSig === signature && element.__gvStamp === stamp) {
+      // A site can block a whole kind of source outright (Reddit: GTA and gaming subreddits). A trusted source is exempt.
+      const forced = trusted ? '' : hooks.forceBlock?.(element, settings.extra || {}) || '';
+      const signature = [text, assumeGta, comment, channel.key, channel.name, trusted, forced].join('|');
+
+      if (!lostCover && element.__gvSig === signature && element.__gvStamp === stamp) {
         return;
       }
 
       const result = GV.classify(text, { assumeGta, panic });
       const keepHidden = GV.keepsStoryHidden(mode) && result.bucket === 'story';
-      const blocked = GV.isBlocked(result, level) && !(trusted && !keepHidden);
-      const label = result.bucket === 'content' ? KIND_LABELS[result.kind] || LABELS.content : LABELS[result.bucket];
+      const blocked = Boolean(forced) || (GV.isBlocked(result, level) && !(trusted && !keepHidden));
+      const kindLabel =
+        result.bucket === 'content' ? KIND_LABELS[result.kind] || LABELS.content : LABELS[result.bucket];
+      const label = forced || kindLabel;
       const body = comment ? hooks.bodyOf?.(element) || null : null;
-      const info = { label, strip: STRIP_LABELS[result.bucket], channel, trusted, comment, body };
+      const why = forced ? '' : result.why || '';
+      const info = { label, strip: forced || STRIP_LABELS[result.bucket], channel, trusted, comment, body, why };
 
       // a revealed tile keeps its reveal while it stays blocked
       if (blocked && element.hasAttribute('data-gv-blocked')) {
@@ -283,7 +306,7 @@
           if (comment) {
             showStrip(element, info.strip, body);
           } else {
-            showCard(element, info.label, channel, trusted);
+            showCard(element, info.label, channel, trusted, why);
           }
         }
       } else {
@@ -344,12 +367,26 @@
 
     // Runs as a microtask right after the DOM change, so a tile is classified before it can paint.
     const handleMutations = records => {
+      if (superseded()) {
+        retire();
+
+        return;
+      }
+
       for (const record of records) {
         if (isOurs(record.target)) {
           continue;
         }
 
         if (record.type === 'childList') {
+          // the extension adding its own card or strip is not news: nothing to re-judge
+          const onlyOurs =
+            record.addedNodes.length > 0 && record.removedNodes.length === 0 && [...record.addedNodes].every(isOurs);
+
+          if (onlyOurs) {
+            continue;
+          }
+
           for (const node of record.addedNodes) {
             if (!isOurs(node)) {
               collect(node, false, true);
@@ -412,9 +449,15 @@
     };
 
     const handleVisibility = () => {
+      if (superseded()) {
+        retire();
+
+        return;
+      }
+
+      // an orphan (extension reloaded under this tab) stops quietly; cards still reveal on click, which needs no API
       if (!alive()) {
-        observer.disconnect();
-        clearInterval(timer);
+        retire({ keepClick: true });
 
         return;
       }
@@ -428,6 +471,32 @@
     addEventListener('popstate', idle);
     document.addEventListener('visibilitychange', handleVisibility);
     const timer = setInterval(handleVisibility, 2000);
+
+    let retired = false;
+
+    const retire = (options = {}) => {
+      if (retired) {
+        return;
+      }
+
+      retired = true;
+      observer.disconnect();
+      clearInterval(timer);
+      removeEventListener('scroll', handleScroll);
+      removeEventListener('popstate', idle);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      document.removeEventListener('play', handlePlay, true);
+
+      if (!options.keepClick) {
+        document.removeEventListener('click', handleClick, true);
+      }
+
+      try {
+        chrome.storage.onChanged.removeListener(load);
+      } catch {
+        // the extension is gone: nothing to unhook
+      }
+    };
 
     const apply = incoming => {
       settings = { ...settings, ...incoming };
@@ -502,6 +571,12 @@
 
     // Reveal on click, then swallow that click so the tile doesn't open.
     const handleClick = event => {
+      if (superseded()) {
+        retire();
+
+        return;
+      }
+
       const badge = event.target.closest?.('.gv-card__trust');
 
       if (badge) {
@@ -583,6 +658,11 @@
         panic: site.panic ?? synced.panic,
         mode: synced[modeKey],
         trusted: synced[listKey],
+        extra: Object.fromEntries(
+          Object.keys(adapter.extra || {}).map(key => {
+            return [key, synced[key]];
+          }),
+        ),
       };
     };
 
@@ -594,6 +674,11 @@
         sites: {},
         [modeKey]: settings.mode,
         [listKey]: settings.trusted,
+        ...Object.fromEntries(
+          Object.entries(adapter.extra || {}).map(([key, fallback]) => {
+            return [key, settings.extra?.[key] ?? fallback];
+          }),
+        ),
       };
 
       chrome.storage.sync.get(defaults, synced => {

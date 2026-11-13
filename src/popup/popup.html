@@ -38,7 +38,10 @@
       <div class="box box--gap box--wrap" id="panicBox">
         <span class="box__text">
           <b>Panic mode</b>
-          <small>Also hides generic spoiler phrases ("who dies", "all endings") on any video</small>
+          <small
+            >Flags anything that could be a spoiler near GTA VI, Jason or Lucia: any leak, death or ending word. Expect
+            false alarms.</small
+          >
         </span>
         <input class="switch" id="panic" type="checkbox" aria-label="Panic mode" />
         <div class="panic-sites" id="panicSites" hidden></div>
@@ -47,8 +50,9 @@
 
     <main class="bd" id="trusted" hidden>
       <div class="levels levels--two" id="siteSwitch">
-        <button class="levels__button" data-trust-site="youtube" type="button">YouTube channels</button>
-        <button class="levels__button" data-trust-site="x" type="button">X accounts</button>
+        <button class="levels__button" data-trust-site="youtube" type="button">YT</button>
+        <button class="levels__button" data-trust-site="x" type="button">X</button>
+        <button class="levels__button" data-trust-site="reddit" type="button">Reddit</button>
       </div>
       <div class="levels levels--three levels--gap" id="modes">
         <button class="levels__button" data-mode="same" type="button">Same rules</button>
@@ -56,9 +60,25 @@
         <button class="levels__button" data-mode="everything" type="button">Everything</button>
       </div>
       <p class="desc" id="modeDesc"></p>
+      <div id="redditBlocks" hidden>
+        <label class="box box--gap">
+          <span class="box__text">
+            <b>Block GTA / GTA VI subs</b>
+            <small>Hides every post from subreddits like r/GTA6, r/GTAVI, r/GTA</small>
+          </span>
+          <input class="switch" id="blockGta" type="checkbox" aria-label="Block GTA and GTA VI subreddits" />
+        </label>
+        <label class="box box--gap">
+          <span class="box__text">
+            <b>Block gaming subs</b>
+            <small>Hides every post from gaming subreddits, so you can scroll Reddit freely</small>
+          </span>
+          <input class="switch" id="blockGaming" type="checkbox" aria-label="Block gaming subreddits" />
+        </label>
+      </div>
       <input class="search" id="search" type="search" placeholder="Search" />
       <div class="list" id="list"></div>
-      <div class="box box--gap">
+      <div class="box box--gap" id="syncBox">
         <span class="box__text">
           <b id="syncTitle">Not synced yet</b>
           <small id="syncDetail"></small>

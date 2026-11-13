@@ -24,6 +24,7 @@ const SITES = {
   youtube: {
     label: 'YouTube',
     noun: 'channels',
+    one: 'a channel',
     trust: 'trusted',
     mode: 'subsMode',
     subs: 'subs',
@@ -35,6 +36,7 @@ const SITES = {
   x: {
     label: 'X',
     noun: 'accounts',
+    one: 'an account',
     trust: 'xTrusted',
     mode: 'xMode',
     subs: 'xSubs',
@@ -43,8 +45,22 @@ const SITES = {
     canSync: false,
     pickHint: 'accounts collected. Open your Following page on X and scroll to add more.',
   },
+  // subreddits are added with the Trust badge on a hidden post; there is nothing to sync or collect
+  reddit: {
+    label: 'Reddit',
+    noun: 'subreddits',
+    one: 'a subreddit',
+    trust: 'redditTrusted',
+    mode: 'redditMode',
+    canSync: false,
+    own: true,
+  },
 };
 const DEFAULTS = {
+  redditTrusted: {},
+  redditMode: 'gameplay',
+  redditBlockGta: false,
+  redditBlockGaming: false,
   global: true,
   level: 'content',
   panic: false,
@@ -242,9 +258,7 @@ const renderTrusted = () => {
   setActive($('modes').querySelectorAll('[data-mode]'), button => {
     return button.dataset.mode === mode;
   });
-  $('modeDesc').textContent = hasTrusted
-    ? MODE_DESCRIPTIONS[mode]
-    : `Trust ${config.noun === 'accounts' ? 'an account' : 'a channel'} to turn this on.`;
+  $('modeDesc').textContent = hasTrusted ? MODE_DESCRIPTIONS[mode] : `Trust ${config.one} to turn this on.`;
 
   const list = $('list');
 
@@ -254,9 +268,11 @@ const renderTrusted = () => {
     const empty = document.createElement('div');
 
     empty.className = 'list__empty';
-    empty.textContent = config.canSync
-      ? 'Nothing trusted yet. Sync to pick from your subscriptions, or use Trust on a hidden card.'
-      : 'Nothing trusted yet. Open your Following page and scroll, or use Trust on a hidden post.';
+    empty.textContent = config.own
+      ? 'Nothing trusted yet. Use Trust on a hidden Reddit post to add its subreddit.'
+      : config.canSync
+        ? 'Nothing trusted yet. Sync to pick from your subscriptions, or use Trust on a hidden card.'
+        : 'Nothing trusted yet. Open your Following page and scroll, or use Trust on a hidden post.';
     list.append(empty);
   }
 
@@ -298,6 +314,15 @@ const renderTrusted = () => {
   $('sync').hidden = !config.canSync;
   $('syncTitle').textContent = syncedAt ? `Synced ${ago(syncedAt)}` : idle;
   $('syncDetail').textContent = (config.canSync && state.syncError) || `${count} ${config.pickHint}`;
+
+  // Reddit: two blocks on top, and a list that only holds what you trusted yourself
+  $('redditBlocks').hidden = site !== 'reddit';
+  $('blockGta').checked = state.redditBlockGta;
+  $('blockGaming').checked = state.redditBlockGaming;
+
+  // Reddit has nothing to sync, and its empty message already says how to add a subreddit: the box would only repeat
+  // it, and its height is what the list needs.
+  $('syncBox').hidden = Boolean(config.own);
 };
 
 const render = () => {
@@ -390,6 +415,7 @@ const refresh = () => {
       state.level = GV.normalizeLevel(state.level);
       state.subsMode = GV.normalizeMode(state.subsMode);
       state.xMode = GV.normalizeMode(state.xMode);
+      state.redditMode = GV.normalizeMode(state.redditMode);
 
       for (const app of Object.keys(state.sites)) {
         if (state.sites[app].level) {
@@ -424,5 +450,11 @@ $('panic').onchange = () => {
 };
 $('search').oninput = renderTrusted;
 $('sync').onclick = handleSync;
+$('blockGta').onchange = () => {
+  save({ redditBlockGta: $('blockGta').checked });
+};
+$('blockGaming').onchange = () => {
+  save({ redditBlockGaming: $('blockGaming').checked });
+};
 chrome.storage.onChanged.addListener(refresh);
 refresh();

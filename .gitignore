@@ -6,3 +6,4 @@ playwright-report/
 # unused source art, kept on disk only
 assets/images/*.eps
 assets/images/background-full.png
+verify.log

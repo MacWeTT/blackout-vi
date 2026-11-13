@@ -116,7 +116,7 @@ test.describe('YouTube comments', () => {
         return stateAt(nothing, TEXT, 0);
       })
       .toBe('blocked');
-    expect(await stripText(nothing)).toContain('Potential spoiler hidden');
+    expect(await stripText(nothing)).toContain('GTA VI content hidden');
   });
 
   test('only the Show button reveals; clicking the strip itself does nothing', async ({ openFixture }) => {

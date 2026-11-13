@@ -320,3 +320,86 @@ test('at the Content level every kind of content shows together; at Nothing each
 
   expect(kinds).toEqual(['GTA VI music', 'GTA VI trailer', 'GTA VI news', 'GTA VI details', 'GTA VI review']);
 });
+
+// Panic mode flags anything that could be a spoiler near GTA VI, even an everyday word; normal mode reads the context.
+test('panic mode flags a post that normal mode lets through, and still ignores text far from GTA VI', async ({
+  openFixture,
+}) => {
+  const post = 'My PS5 is dead before GTA 6. Liquid thermal leaked and shorted the APU';
+
+  const calm = await openFixture({ level: 'content', panic: false });
+
+  await addTile(calm, TAG, post);
+  await addTile(calm, TAG, 'Water leak in my kitchen');
+  await calm.waitForTimeout(300);
+  expect(await stateOf(calm, 0)).toBe('ok');
+  expect(await stateOf(calm, 1)).toBe('ok');
+
+  const panic = await openFixture({ level: 'content', panic: true });
+
+  await addTile(panic, TAG, post);
+  await addTile(panic, TAG, 'Water leak in my kitchen');
+  await expect
+    .poll(() => {
+      return stateOf(panic, 0);
+    })
+    .toBe('blocked');
+  expect(await stateOf(panic, 1)).toBe('ok'); // nothing near GTA VI, so panic leaves it alone
+
+  const kind = await panic.evaluate(() => {
+    return document.querySelector('.gv-card__kind').dataset.kind;
+  });
+
+  expect(kind).toBe('Story spoiler');
+});
+
+test('panic mode also covers comments', async ({ openFixture }) => {
+  const page = await openFixture({ level: 'content', panic: true });
+
+  await page.evaluate(() => {
+    const thread = document.createElement('ytd-comment-thread-renderer');
+
+    thread.innerHTML =
+      '<ytd-comment-view-model><b>@x</b><div id="content-text">Jason was in it and everyone cried</div></ytd-comment-view-model>';
+    document.getElementById('feed').append(thread);
+  });
+  await expect(page.locator('.gv-strip')).toHaveCount(1);
+});
+
+test('a hidden story card says which word flagged it, and the page element records it', async ({ openFixture }) => {
+  const page = await openFixture();
+
+  await addTile(page, TAG, 'GTA 6 ending explained');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
+
+  const shown = await page.evaluate(() => {
+    return {
+      onCard: document.querySelector('.gv-card__why').dataset.why,
+      onTile: document.getElementById('feed').children[0].getAttribute('data-gv-why'),
+      text: getComputedStyle(document.querySelector('.gv-card__why'), '::before').content,
+    };
+  });
+
+  expect(shown.onCard).toContain('ending');
+  expect(shown.onTile).toContain('ending');
+  expect(shown.text).toContain('because');
+
+  // a content card has no reason to give
+  const content = await openFixture({ level: 'nothing' });
+
+  await addTile(content, TAG, 'GTA 6 trailer 3');
+  await expect
+    .poll(() => {
+      return stateOf(content, 0);
+    })
+    .toBe('blocked');
+  expect(
+    await content.evaluate(() => {
+      return document.querySelector('.gv-card__why').dataset.why;
+    }),
+  ).toBe('');
+});

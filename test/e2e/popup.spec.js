@@ -243,11 +243,11 @@ test.describe('rules', () => {
 });
 
 test.describe('trusted tab', () => {
-  test('YouTube channels and X accounts only: Reddit has no trusted list', async ({ context, extensionId }) => {
+  test('the Trusted tab has YT, X and Reddit', async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     await popup.click('[data-view="trusted"]');
-    await expect(popup.locator('[data-trust-site]')).toHaveText(['YouTube channels', 'X accounts']);
+    await expect(popup.locator('[data-trust-site]')).toHaveText(['YT', 'X', 'Reddit']);
   });
 
   test('with nobody trusted the mode control is greyed out and says why', async ({ context, extensionId }) => {
@@ -368,4 +368,79 @@ test('settings saved by an older version (all / news / story / off) still mean t
       return stateOf(youtube, 0);
     })
     .toBe('ok');
+});
+
+test('after a reload a second copy of the script starts in an open tab and only the newest one acts', async ({
+  context,
+  openFixture,
+}) => {
+  const page = await openFixture({ mode: 'everything' });
+  const [worker] = context.serviceWorkers().length
+    ? context.serviceWorkers()
+    : [await context.waitForEvent('serviceworker')];
+
+  const before = await page.locator('html').getAttribute('data-gv-engine');
+
+  // the real trigger is the extension being reloaded; calling the same function checks the injection itself
+  const started = await worker.evaluate(() => {
+    return reinjectIntoOpenTabs();
+  });
+
+  expect(started).toBeGreaterThanOrEqual(1);
+  expect(await page.locator('html').getAttribute('data-gv-engine')).not.toBe(before); // a new copy took over
+
+  // the page must stay responsive and behave: two copies fighting would hang the page here
+  await page.evaluate(() => {
+    const tile = document.createElement('ytd-rich-item-renderer');
+
+    tile.innerHTML =
+      '<ytd-channel-name><a href="/@someoneelse">Someone Else</a></ytd-channel-name><div>GTA 6 gameplay first hour</div>';
+    document.getElementById('feed').append(tile);
+  });
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
+  await page.locator('.gv-card__trust').click({ timeout: 8000 });
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('ok');
+  await expect(page.locator('#gv-toast')).toHaveCount(1); // one copy handled the click, not two
+  await page.waitForTimeout(2500); // longer than the 2s tick: the old copy has stopped and nothing flips back
+  expect(await stateOf(page, 0)).toBe('ok');
+});
+
+// A scrollbar belongs on a list only when it overflows. An empty list must never show one.
+test('an empty list has no scrollbar on any Trusted tab, and a long one does', async ({ context, extensionId }) => {
+  const popup = await context.newPage();
+
+  await popup.setViewportSize({ width: 340, height: 600 });
+  await popup.goto(POPUP(extensionId));
+  await expect(popup.locator('#levels .levels__button--on')).toHaveCount(1);
+  await popup.click('[data-view="trusted"]');
+
+  const overflows = () => {
+    return popup.locator('#list').evaluate(element => {
+      return element.scrollHeight > element.clientHeight;
+    });
+  };
+
+  for (const site of ['youtube', 'x', 'reddit']) {
+    await popup.click(`[data-trust-site="${site}"]`);
+    await expect(popup.locator('.list__empty')).toBeVisible();
+    expect(await overflows(), `${site}: empty list`).toBe(false);
+  }
+
+  // with Reddit's two blocks on screen the list is at its smallest: still no scrollbar
+  await popup.click('[data-trust-site="reddit"]');
+  await expect(popup.locator('#redditBlocks')).toBeVisible();
+  expect(await overflows(), 'reddit with both blocks').toBe(false);
+
+  await seedSubs(popup, 40);
+  await popup.click('[data-trust-site="youtube"]');
+  await expect(popup.locator('.channel')).toHaveCount(40);
+  expect(await overflows(), 'a long list scrolls').toBe(true);
 });

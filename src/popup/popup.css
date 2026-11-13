@@ -303,7 +303,7 @@ body {
 }
 
 .list__empty {
-  padding: 14px 4px;
+  padding: 8px 4px;
   color: var(--muted);
   font-size: 12px;
 }
