@@ -9,7 +9,7 @@
   };
 
   // bucket: 'story' | 'gameplay' | 'content' | null (not about GTA VI)
-  // Severity order: story > gameplay > news. The highest match wins.
+  // Severity order: story > gameplay > content. The highest match wins.
   const classify = (text, options = {}) => {
     const { assumeGta = false, panic = false } = options;
     // a space after digits splits glued text such as gta6ending
