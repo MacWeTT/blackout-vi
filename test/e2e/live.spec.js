@@ -58,7 +58,12 @@ test('live: trusting a channel from a card marks it trusted, and the mark surviv
   test.setTimeout(120000);
 
   const page = await search(context, 'gta 6 ending explained');
-  const badge = page.locator('ytd-video-renderer[data-gv-blocked] .gv-card__trust').first();
+  // a story-spoiler card stays on screen after its channel is trusted (a gameplay one would correctly disappear)
+  const badge = page
+    .locator('ytd-video-renderer[data-gv-blocked]:has(.gv-card__kind[data-kind="Story spoiler"]) .gv-card__trust')
+    .first();
+
+  test.skip((await badge.count()) === 0, 'no story-spoiler card in the live results right now');
 
   await badge.scrollIntoViewIfNeeded();
 

@@ -619,7 +619,11 @@ test.describe('old Reddit', () => {
     await expect(page.locator('.gv-strip')).toHaveCount(2);
     // the reply's text element is the tile, so it holds the strip; its words are gone
     await expect(page.locator('.reply .gv-strip')).toHaveCount(1);
-    expect(await page.locator('.reply').evaluate(element => {return getComputedStyle(element).color})).toBe('rgba(0, 0, 0, 0)');
+    expect(
+      await page.locator('.reply').evaluate(element => {
+        return getComputedStyle(element).color;
+      }),
+    ).toBe('rgba(0, 0, 0, 0)');
     await expect(page.locator('.thing.comment .author').first()).toBeVisible();
     expect(await stripText(page)).toContain('Potential story spoiler hidden');
   });

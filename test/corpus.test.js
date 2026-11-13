@@ -117,6 +117,11 @@ const cases = [
   ['GTA 6 he killed 20 NPCs gameplay', 'gameplay'],
   ['GTA 6 killed my fps', 'content'],
   ['GTA 6 vs Red Dead Redemption 2 character detail', 'content'],
+  // an everyday word is not a spoiler marker: leaks only count when they are about the game (a real Reddit post)
+  ['My PS5 is dead before GTA 6. Liquid thermal leaked and shorted the APU', 'content'],
+  ['GTA 6 coolant leaking from my ps5 pro', 'content'],
+  ['Liquid leaked and shorted my PS5 before GTA 6', 'content'],
+  ['GTA 6 leaked footage', 'story'],
   // --- gameplay ---
   ['GTA 6 gameplay', 'gameplay'],
   ['GTA 6 gameplay leak', 'story'],

@@ -11,7 +11,7 @@
   // A death or sacrifice word is a story spoiler only when a word about a character is within four words of it.
   // "Jason sacrifices his life" counts; "sacrifice NPC car numbers" does not. See WORDS.weak.
   const weakStory = text => {
-    const { strict, loose, subjects, pronouns, ignore } = WORDS.weak;
+    const { strict, loose, subjects, pronouns, ignore, leak, leak_hardware: hardware } = WORDS.weak;
     let cleaned = text;
 
     for (const pattern of ignore) {
@@ -21,6 +21,22 @@
     const tokens = cleaned.match(/[a-z0-9]+/g) || [];
 
     for (let i = 0; i < tokens.length; i++) {
+      // a leak about the game, not a leaking pipe
+      if (leak.words.includes(tokens[i])) {
+        const around = tokens.slice(Math.max(0, i - 3), i).concat(tokens.slice(i + 1, i + 4));
+
+        if (
+          around.some(word => {
+            return leak.about.includes(word);
+          }) &&
+          !around.some(word => {
+            return hardware.includes(word);
+          })
+        ) {
+          return true;
+        }
+      }
+
       const isStrict = strict.includes(tokens[i]);
 
       if (!isStrict && !loose.includes(tokens[i])) {
