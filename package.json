@@ -1,0 +1,15 @@
+{
+  "name": "gta6-spoiler-shield",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "node test/classifier.test.js && node test/corpus.test.js && node test/trust.test.js",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "verify": "npm run test && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "prettier": "^3.3.0"
+  }
+}
