@@ -2,7 +2,7 @@
   <img src="assets/images/gta-vi-logo.png" alt="Grand Theft Auto VI" width="280" />
 </p>
 
-# GTA VI Spoiler Shield
+# Blackout VI
 
 A Chrome extension (Manifest V3) that hides GTA VI spoilers on **YouTube, X and Reddit** before they paint. Posts and
 videos get a cover card; comments and replies collapse to a one-line strip

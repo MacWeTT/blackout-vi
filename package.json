@@ -1,13 +1,14 @@
 {
-  "name": "gta6-spoiler-shield",
+  "name": "blackout-vi",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "lint": "eslint .",
-    "test": "node test/classifier.test.js && node test/corpus.test.js && node test/trust.test.js && node test/names.test.js && node test/kinds.test.js && node test/panic.test.js && node test/subs.test.js && node test/why.test.js",
+    "test": "node test/classifier.test.js && node test/corpus.test.js && node test/trust.test.js && node test/names.test.js && node test/kinds.test.js && node test/panic.test.js && node test/subs.test.js && node test/why.test.js && node test/pack.test.js",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
-    "verify": "npm run lint && npm run test && npm run test:e2e"
+    "verify": "npm run lint && npm run test && npm run test:e2e",
+    "pack": "node scripts/pack.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

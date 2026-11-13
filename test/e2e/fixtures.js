@@ -3,7 +3,8 @@ const os = require('os');
 const fs = require('fs');
 const base = require('@playwright/test');
 
-const EXTENSION = path.resolve(__dirname, '../..');
+// GV_EXTENSION=dist/blackout-vi runs the same tests against the packed copy instead of the project folder
+const EXTENSION = process.env.GV_EXTENSION ? path.resolve(process.env.GV_EXTENSION) : path.resolve(__dirname, '../..');
 const FIXTURE_URL = 'https://www.youtube.com/__fixture';
 const FIXTURE_HTML = `<!doctype html><html><head><title>fixture</title>
 <style>ytd-rich-item-renderer,ytd-video-renderer,ytd-comment-thread-renderer,yt-lockup-view-model{display:block;width:300px;height:80px;margin:6px;background:#eee;color:#000}ytd-comment-thread-renderer{height:auto;min-height:30px}</style>
@@ -98,7 +99,7 @@ const test = base.test.extend({
       const list = await chrome.developerPrivate.getExtensionsInfo();
 
       return list.find(item => {
-        return item.name.includes('Spoiler Shield');
+        return item.name.includes('Blackout VI');
       }).id;
     });
 

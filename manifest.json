@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "GTA VI Spoiler Shield",
+  "name": "Blackout VI",
   "version": "1.0.0",
   "description": "Hides GTA VI story and gameplay spoilers on YouTube, X and Reddit before they ever paint.",
   "permissions": ["storage", "scripting"],
@@ -15,7 +15,7 @@
   ],
   "action": {
     "default_popup": "src/popup/popup.html",
-    "default_title": "GTA VI Spoiler Shield",
+    "default_title": "Blackout VI",
     "default_icon": {
       "16": "assets/icons/16.png",
       "32": "assets/icons/32.png",

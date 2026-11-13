@@ -521,7 +521,7 @@
     // "Trust this channel": saved to sync storage and applied here at once, with an undo.
     const trustChannel = channel => {
       if (!alive()) {
-        showToast('Spoiler Shield was reloaded. Refresh this tab to use Trust.', () => {});
+        showToast('Blackout VI was reloaded. Refresh this tab to use Trust.', () => {});
 
         return;
       }
@@ -546,7 +546,7 @@
 
     const untrustChannel = channel => {
       if (!alive()) {
-        showToast('Spoiler Shield was reloaded. Refresh this tab to use Trust.', () => {});
+        showToast('Blackout VI was reloaded. Refresh this tab to use Trust.', () => {});
 
         return;
       }

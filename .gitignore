@@ -7,3 +7,4 @@ playwright-report/
 assets/images/*.eps
 assets/images/background-full.png
 verify.log
+dist/
