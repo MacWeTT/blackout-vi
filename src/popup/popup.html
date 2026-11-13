@@ -11,6 +11,38 @@
 
     <main class="sheet" id="main">
       <h1 class="sheet__title">Spoiler Shield</h1>
+
+      <label class="box">
+        <span class="box__text">
+          <b>Global settings</b>
+          <small id="globalHint">The same rules on YouTube, X and Reddit</small>
+        </span>
+        <input class="switch" id="global" type="checkbox" />
+      </label>
+
+      <div class="sites" id="sites" hidden>
+        <button class="site" data-site="youtube" type="button" title="YouTube" aria-label="YouTube">
+          <svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true">
+            <rect width="28" height="20" rx="6" fill="#ff0000" />
+            <path d="M11 5.5v9l8-4.5z" fill="#fff" />
+          </svg>
+        </button>
+        <button class="site" data-site="x" type="button" title="X" aria-label="X">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path d="M3 3h5l4.2 5.8L17 3h3l-6.4 7.4L21 21h-5l-4.6-6.3L6 21H3l7-8z" fill="#111" />
+          </svg>
+        </button>
+        <button class="site" data-site="reddit" type="button" title="Reddit (coming soon)" aria-label="Reddit">
+          <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+            <circle cx="12" cy="12" r="11" fill="#ff4500" />
+            <ellipse cx="12" cy="14" rx="6.5" ry="4.5" fill="#fff" />
+            <circle cx="9.5" cy="13.5" r="1.1" fill="#ff4500" />
+            <circle cx="14.5" cy="13.5" r="1.1" fill="#ff4500" />
+            <circle cx="16.5" cy="7" r="1.5" fill="#fff" />
+          </svg>
+        </button>
+      </div>
+
       <div class="levels" id="levels">
         <button class="levels__button" data-level="all">Block all</button>
         <button class="levels__button" data-level="news">News</button>
@@ -19,14 +51,9 @@
       </div>
       <p class="sheet__desc" id="desc"></p>
 
-      <h2 class="sheet__heading">Trusted channels</h2>
-      <div class="levels levels--three" id="subs">
-        <button class="levels__button" data-subs="off">Off</button>
-        <button class="levels__button" data-subs="gameplay">Allow gameplay</button>
-        <button class="levels__button" data-subs="all">Allow all</button>
-      </div>
-      <p class="sheet__desc sheet__desc--small" id="subsDesc"></p>
-      <button class="link" id="manage" type="button">Manage trusted channels</button>
+      <h2 class="sheet__heading" id="trustHeading">Trusted</h2>
+      <div id="trustRows"></div>
+      <p class="sheet__desc sheet__desc--small" id="siteNote" hidden></p>
 
       <label class="box">
         <input class="box__check" id="panic" type="checkbox" />
@@ -41,13 +68,21 @@
     </main>
 
     <main class="sheet" id="channels" hidden>
-      <button class="link link--back" id="back" type="button">&larr; Trusted channels</button>
-      <input class="search" id="search" type="search" placeholder="Search channels" />
+      <button class="link link--back" id="back" type="button">
+        &larr; <span id="manageTitle">Trusted channels</span>
+      </button>
+      <div class="levels levels--three" id="modes">
+        <button class="levels__button" data-mode="off">Off</button>
+        <button class="levels__button" data-mode="gameplay">Allow gameplay</button>
+        <button class="levels__button" data-mode="all">Allow all</button>
+      </div>
+      <p class="sheet__desc sheet__desc--small" id="modeDesc"></p>
+      <input class="search" id="search" type="search" placeholder="Search" />
       <div class="list" id="list"></div>
       <div class="box">
         <span class="box__text">
           <b id="syncTitle">Not synced yet</b>
-          <small id="syncDetail">Syncs from your YouTube account</small>
+          <small id="syncDetail"></small>
         </span>
         <button class="pill" id="sync" type="button">Sync now</button>
       </div>

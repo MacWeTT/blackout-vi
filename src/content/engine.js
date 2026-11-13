@@ -1,0 +1,479 @@
+// Shared engine for every site. A tile is hidden until it is judged; a blocked tile gets a card with a reveal click
+// and a trust badge. Each site supplies an adapter: its tile selectors, how to find the author, and site-only hooks.
+(() => {
+  const LEVELS = ['all', 'news', 'story', 'off'];
+  const LABELS = { story: 'Story spoiler', gameplay: 'Gameplay spoiler', news: 'GTA VI news' };
+  const KEY = 'gv_settings';
+
+  const start = adapter => {
+    const TILES = adapter.tiles.join(',');
+    const listKey = adapter.trust.list;
+    const modeKey = adapter.trust.mode;
+    const root = document.documentElement;
+
+    // Resolved settings for this site. localStorage is a synchronous cache so the right level applies before
+    // chrome.storage answers.
+    let settings = { level: 'news', panic: false, mode: 'gameplay', trusted: {} };
+    let trust = GV.buildTrust({ trusted: settings.trusted, subsMode: settings.mode });
+
+    try {
+      settings = { ...settings, ...JSON.parse(localStorage.getItem(KEY)) };
+    } catch {
+      // no cache yet: the defaults stay
+    }
+
+    if (!LEVELS.includes(settings.level)) {
+      settings.level = 'news';
+    }
+
+    trust = GV.buildTrust({ trusted: settings.trusted, subsMode: settings.mode });
+    root.toggleAttribute('data-gv-off', settings.level === 'off');
+
+    let stamp = 0; // bumped on settings change so cached verdicts are recomputed
+    const paused = new Set();
+    const dirty = new Set();
+    let hooks = {};
+
+    // Publishes a blocked card's size to the CSS (--gv-w, --gv-h) so its logo and text scale with it.
+    const sizer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+
+        entry.target.style.setProperty('--gv-w', Math.round(width));
+        entry.target.style.setProperty('--gv-h', Math.round(height));
+      }
+    });
+
+    const outer = element => {
+      let current = element;
+      let parent = current.parentElement?.closest(TILES);
+
+      while (parent) {
+        current = parent;
+        parent = current.parentElement?.closest(TILES);
+      }
+
+      return current;
+    };
+
+    const clean = text => {
+      return text.replace(/\s+/g, ' ').trim();
+    };
+
+    // Text nodes are joined with spaces: adjacent elements often have no whitespace between them in the DOM,
+    // and "NewGTA 6" would otherwise slip past the word-boundary patterns.
+    const textOf = element => {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      const parts = [];
+
+      while (walker.nextNode()) {
+        parts.push(walker.currentNode.nodeValue);
+      }
+
+      let text = parts.join(' ');
+
+      for (const node of element.querySelectorAll('[aria-label],[title],[alt]')) {
+        const attrs = ['aria-label', 'title', 'alt'].map(name => {
+          return node.getAttribute(name) || '';
+        });
+
+        text += ' ' + attrs.join(' ');
+      }
+
+      return clean(text);
+    };
+
+    const showToast = (message, onUndo) => {
+      document.getElementById('gv-toast')?.remove();
+
+      const toast = document.createElement('div');
+      const text = document.createElement('span');
+      const undo = document.createElement('button');
+
+      toast.id = 'gv-toast';
+      text.textContent = message;
+      undo.textContent = 'Undo';
+      undo.onclick = () => {
+        onUndo();
+        toast.remove();
+      };
+      toast.append(text, undo);
+      document.documentElement.append(toast);
+      setTimeout(() => {
+        return toast.remove();
+      }, 7000);
+    };
+
+    // The card is a real element so its text can have a hierarchy; its words come from CSS (data-kind),
+    // so they never become part of the tile's own text and never feed back into the classifier.
+    const showCard = (element, label, channel, trusted) => {
+      let card = element.querySelector(':scope > .gv-card');
+
+      if (!card) {
+        card = document.createElement('div');
+        card.className = 'gv-card';
+        card.innerHTML = `<span class="gv-card__logo"></span><span class="gv-card__kind"></span><span class="gv-card__hint"></span><span class="gv-card__trust"></span>`;
+        element.append(card);
+      }
+
+      card.querySelector('.gv-card__kind').dataset.kind = label;
+
+      // the badge only appears when we can say who this is
+      const badge = card.querySelector('.gv-card__trust');
+      const known = channel.key || channel.name;
+
+      badge.hidden = !known;
+      badge.toggleAttribute('data-trusted', Boolean(trusted));
+      badge.dataset.key = channel.key;
+      badge.dataset.name = channel.name || channel.key;
+    };
+
+    const hideCard = element => {
+      element.querySelector(':scope > .gv-card')?.remove();
+    };
+
+    const resumeIn = element => {
+      for (const video of paused) {
+        if (element.contains(video)) {
+          paused.delete(video);
+          video.play().catch(() => {});
+        }
+      }
+    };
+
+    const setState = (element, blocked, label, channel, trusted) => {
+      if (blocked === null) {
+        element.removeAttribute('data-gv-ok');
+        element.removeAttribute('data-gv-blocked');
+        element.removeAttribute('data-gv-shown');
+        sizer.unobserve(element);
+        hideCard(element);
+        delete element.__gvSig;
+
+        return;
+      }
+
+      if (blocked) {
+        element.setAttribute('data-gv-blocked', '');
+        element.setAttribute('data-gv-label', label);
+        element.removeAttribute('data-gv-ok');
+        sizer.observe(element);
+        showCard(element, label, channel, trusted);
+
+        for (const video of element.querySelectorAll('video')) {
+          video.pause();
+          paused.add(video);
+        }
+
+        return;
+      }
+
+      element.setAttribute('data-gv-ok', '');
+      element.removeAttribute('data-gv-blocked');
+      element.removeAttribute('data-gv-shown');
+      sizer.unobserve(element);
+      hideCard(element);
+      resumeIn(element);
+    };
+
+    const check = element => {
+      const { level, panic, mode } = settings;
+
+      if (level === 'off' || !element.isConnected) {
+        return;
+      }
+
+      const text = textOf(element);
+
+      // no text yet: stays hidden, never revealed on a timeout
+      if (!text) {
+        setState(element, null);
+
+        return;
+      }
+
+      const assumeGta = Boolean(hooks.assumeGta?.(element));
+      const channel = hooks.skipTrust?.(element) ? { key: '', name: '' } : adapter.channelOf(element, clean);
+      const trusted = GV.isTrusted(trust, channel);
+      const signature = [text, assumeGta, channel.key, channel.name, trusted].join('|');
+
+      if (element.__gvSig === signature && element.__gvStamp === stamp) {
+        return;
+      }
+
+      const result = GV.classify(text, { assumeGta, panic });
+      const keepHidden = GV.keepsStoryHidden(mode) && result.bucket === 'story';
+      const blocked = GV.isBlocked(result, level) && !(trusted && !keepHidden);
+      const label = LABELS[result.bucket];
+
+      // a revealed tile keeps its reveal while it stays blocked
+      if (blocked && element.hasAttribute('data-gv-blocked')) {
+        element.setAttribute('data-gv-label', label);
+
+        if (!element.hasAttribute('data-gv-shown')) {
+          showCard(element, label, channel, trusted);
+        }
+      } else {
+        setState(element, blocked, label, channel, trusted);
+      }
+
+      element.__gvSig = signature;
+      element.__gvStamp = stamp;
+    };
+
+    const collect = node => {
+      const element = node.nodeType === 1 ? node : node.parentElement;
+
+      if (!element) {
+        return;
+      }
+
+      const up = element.closest(TILES);
+
+      if (up) {
+        dirty.add(outer(up));
+      }
+
+      for (const tile of element.querySelectorAll(TILES)) {
+        dirty.add(outer(tile));
+      }
+    };
+
+    const flush = () => {
+      if (settings.level !== 'off') {
+        for (const element of dirty) {
+          check(element);
+        }
+      }
+
+      dirty.clear();
+      hooks.onSweep?.();
+    };
+
+    // Runs as a microtask right after the DOM change, so a tile is classified before it can paint.
+    const handleMutations = records => {
+      for (const record of records) {
+        if (record.type === 'childList') {
+          for (const node of record.addedNodes) {
+            collect(node);
+          }
+        }
+
+        collect(record.target);
+      }
+
+      flush();
+    };
+
+    new MutationObserver(handleMutations).observe(root, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['aria-label', 'title', 'href', 'alt'],
+    });
+
+    // Backstop only; unchanged tiles cost one string compare.
+    const sweep = () => {
+      if (settings.level !== 'off') {
+        for (const element of document.querySelectorAll(TILES)) {
+          if (!element.parentElement.closest(TILES)) {
+            check(element);
+          }
+        }
+      }
+
+      hooks.onSweep?.();
+    };
+
+    const idle = () => {
+      (window.requestIdleCallback || setTimeout)(sweep);
+    };
+
+    let scrollTimer;
+
+    const handleScroll = () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(idle, 200);
+    };
+
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        idle();
+      }
+    };
+
+    addEventListener('scroll', handleScroll, { passive: true });
+    addEventListener('popstate', idle);
+    document.addEventListener('visibilitychange', handleVisibility);
+    setInterval(handleVisibility, 2000);
+
+    const apply = incoming => {
+      settings = { ...settings, ...incoming };
+
+      if (!LEVELS.includes(settings.level)) {
+        settings.level = 'news';
+      }
+
+      try {
+        localStorage.setItem(KEY, JSON.stringify(settings));
+      } catch {
+        // storage blocked: the level still applies for this page
+      }
+
+      root.toggleAttribute('data-gv-off', settings.level === 'off');
+      trust = GV.buildTrust({ trusted: settings.trusted, subsMode: settings.mode });
+      stamp++;
+      hooks.onApply?.();
+      sweep();
+    };
+
+    // "Trust this channel": saved to sync storage and applied here at once, with an undo.
+    const trustChannel = channel => {
+      const key = GV.entryKey(channel);
+      const name = channel.name || channel.key;
+      const trusted = { ...settings.trusted, [key]: name };
+
+      chrome.storage.sync.set({ [listKey]: trusted });
+      apply({ trusted });
+
+      const kept = GV.keepsStoryHidden(settings.mode) ? ' Story spoilers stay hidden.' : '';
+
+      showToast(`${name} trusted.${kept}`, () => {
+        const without = { ...settings.trusted };
+
+        delete without[key];
+        chrome.storage.sync.set({ [listKey]: without });
+        apply({ trusted: without });
+      });
+    };
+
+    const untrustChannel = channel => {
+      const same = (key, name) => {
+        return (channel.key && key === channel.key) || name.toLowerCase() === (channel.name || '').toLowerCase();
+      };
+      const before = settings.trusted;
+      const trusted = Object.fromEntries(
+        Object.entries(before).filter(([key, name]) => {
+          return !same(key, name);
+        }),
+      );
+
+      chrome.storage.sync.set({ [listKey]: trusted });
+      apply({ trusted });
+      showToast(`${channel.name || channel.key} is no longer trusted.`, () => {
+        chrome.storage.sync.set({ [listKey]: before });
+        apply({ trusted: before });
+      });
+    };
+
+    // Reveal on click, then swallow that click so the tile doesn't open.
+    const handleClick = event => {
+      const badge = event.target.closest?.('.gv-card__trust');
+
+      if (badge) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const channel = { key: badge.dataset.key, name: badge.dataset.name };
+
+        // a trusted channel's badge shows a check; clicking it again takes the trust back
+        if (badge.hasAttribute('data-trusted')) {
+          untrustChannel(channel);
+        } else {
+          trustChannel(channel);
+        }
+
+        return;
+      }
+
+      const tile = event.target.closest?.('[data-gv-blocked]:not([data-gv-shown])');
+
+      if (!tile) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      tile.setAttribute('data-gv-shown', '');
+      resumeIn(tile);
+    };
+
+    // Anything that starts playing inside a hidden tile (or a site's hidden player) is paused straight away.
+    const isHidden = video => {
+      if (hooks.isPlayerHidden?.(video)) {
+        return true;
+      }
+
+      const closest = video.closest(TILES);
+      const tile = closest && outer(closest);
+
+      return Boolean(tile) && !tile.hasAttribute('data-gv-ok') && !tile.hasAttribute('data-gv-shown');
+    };
+
+    const handlePlay = event => {
+      const video = event.target;
+
+      if (settings.level === 'off' || video.localName !== 'video') {
+        return;
+      }
+
+      if (isHidden(video)) {
+        video.pause();
+        paused.add(video);
+      }
+    };
+
+    document.addEventListener('click', handleClick, true);
+    document.addEventListener('play', handlePlay, true);
+
+    // The site's settings out of everything in storage: its own override when global settings are off.
+    const resolve = synced => {
+      const site = synced.global === false ? synced.sites?.[adapter.site] || {} : {};
+
+      return {
+        level: site.level ?? synced.level,
+        panic: site.panic ?? synced.panic,
+        mode: synced[modeKey],
+        trusted: synced[listKey],
+      };
+    };
+
+    const load = () => {
+      const defaults = {
+        global: true,
+        level: settings.level,
+        panic: settings.panic,
+        sites: {},
+        [modeKey]: settings.mode,
+        [listKey]: settings.trusted,
+      };
+
+      chrome.storage.sync.get(defaults, synced => {
+        apply(resolve(synced));
+      });
+    };
+
+    const api = {
+      LABELS,
+      paused,
+      sizer,
+      root,
+      clean,
+      idle,
+      resumeIn,
+      settings: () => {
+        return settings;
+      },
+      trust: () => {
+        return trust;
+      },
+    };
+
+    hooks = adapter.setup?.(api) || {};
+    load();
+    chrome.storage.onChanged.addListener(load);
+    hooks.onSweep?.();
+  };
+
+  globalThis.GV = { ...globalThis.GV, engine: { start, LABELS } };
+})();

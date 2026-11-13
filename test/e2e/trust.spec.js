@@ -26,7 +26,7 @@ const SUBS = { '@digitalfoundry': 'Digital Foundry' };
 
 test.describe('trusted channels', () => {
   test('a subscription you have not trusted is hidden like any other channel', async ({ openFixture }) => {
-    const page = await openFixture({ subsMode: 'all', subs: SUBS });
+    const page = await openFixture({ mode: 'all', subs: SUBS });
 
     await addChannelTile(page, 'GTA 6 gameplay first hour', DF);
     await expect
@@ -37,7 +37,7 @@ test.describe('trusted channels', () => {
   });
 
   test('off: even a trusted channel follows the normal rules', async ({ openFixture }) => {
-    const page = await openFixture({ subsMode: 'off', trusted: SUBS });
+    const page = await openFixture({ mode: 'off', trusted: SUBS });
 
     await addChannelTile(page, 'GTA 6 gameplay first hour', DF);
     await expect
@@ -48,7 +48,7 @@ test.describe('trusted channels', () => {
   });
 
   test('allow gameplay: gameplay shows, story spoilers stay hidden', async ({ openFixture }) => {
-    const page = await openFixture({ subsMode: 'gameplay', trusted: SUBS });
+    const page = await openFixture({ mode: 'gameplay', trusted: SUBS });
 
     await addChannelTile(page, 'GTA 6 gameplay first hour', DF);
     await addChannelTile(page, 'GTA 6 ending explained', DF);
@@ -65,7 +65,7 @@ test.describe('trusted channels', () => {
   });
 
   test('allow all: even a story spoiler from a subscription shows', async ({ openFixture }) => {
-    const page = await openFixture({ subsMode: 'all', trusted: SUBS });
+    const page = await openFixture({ mode: 'all', trusted: SUBS });
 
     await addChannelTile(page, 'GTA 6 ending explained', DF);
     await expect
@@ -76,7 +76,7 @@ test.describe('trusted channels', () => {
   });
 
   test('another channel is still hidden', async ({ openFixture }) => {
-    const page = await openFixture({ subsMode: 'all', trusted: SUBS });
+    const page = await openFixture({ mode: 'all', trusted: SUBS });
 
     await addChannelTile(page, 'GTA 6 gameplay first hour', { handle: 'SomeoneElse', name: 'Someone Else' });
     await expect
@@ -87,7 +87,7 @@ test.describe('trusted channels', () => {
   });
 
   test('a tile with no identifiable channel is hidden even when everything is trusted', async ({ openFixture }) => {
-    const page = await openFixture({ subsMode: 'all', trusted: SUBS });
+    const page = await openFixture({ mode: 'all', trusted: SUBS });
 
     await page.evaluate(() => {
       const tile = document.createElement('ytd-rich-item-renderer');
@@ -103,7 +103,7 @@ test.describe('trusted channels', () => {
   });
 
   test('a name-only tile (sidebar style) matches by channel name', async ({ openFixture }) => {
-    const page = await openFixture({ subsMode: 'gameplay', trusted: SUBS });
+    const page = await openFixture({ mode: 'gameplay', trusted: SUBS });
 
     await addChannelTile(page, 'GTA 6 gameplay first hour', { handle: '', name: 'Digital Foundry' });
     await expect
@@ -116,7 +116,7 @@ test.describe('trusted channels', () => {
 
 test.describe('trust badge on the card', () => {
   test('clicking it trusts the channel, shows a toast, and undo brings the card back', async ({ openFixture }) => {
-    const page = await openFixture({ subsMode: 'all' });
+    const page = await openFixture({ mode: 'all' });
 
     await addChannelTile(page, 'GTA 6 gameplay first hour', OTHER);
     await expect
@@ -148,7 +148,7 @@ test.describe('trust badge on the card', () => {
   test('after trusting, the card that stays shows a check, and clicking it takes the trust back', async ({
     openFixture,
   }) => {
-    const page = await openFixture({ subsMode: 'gameplay' });
+    const page = await openFixture({ mode: 'gameplay' });
 
     await addChannelTile(page, 'GTA 6 ending explained', OTHER);
     await expect
@@ -185,7 +185,7 @@ test.describe('trust badge on the card', () => {
   });
 
   test('the toast sits in the bottom-right corner, fully on screen', async ({ openFixture }) => {
-    const page = await openFixture({ subsMode: 'all' });
+    const page = await openFixture({ mode: 'all' });
 
     await addChannelTile(page, 'GTA 6 gameplay first hour', OTHER);
     await expect
@@ -254,11 +254,11 @@ test('Sync now lists every subscription but trusts none; you switch on the ones 
   extensionId,
   openFixture,
 }) => {
-  const page = await openFixture({ subsMode: 'all' });
+  const page = await openFixture({ mode: 'all' });
   const popup = await context.newPage();
 
   await popup.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
-  await popup.click('#manage');
+  await popup.click('[data-manage="youtube"]');
   await popup.click('#sync');
   await expect(popup.locator('.channel__name')).toHaveText(['Digital Foundry', 'Rockstar Games'], { timeout: 8000 });
   await expect(popup.locator('#syncTitle')).toContainText('Synced');

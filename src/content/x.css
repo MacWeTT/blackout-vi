@@ -1,0 +1,9 @@
+/* X: a tweet (or a trend) is hidden until the script judges it. opacity, not visibility or display, so X keeps
+   rendering its virtualised timeline. Nested tiles follow their outer tile. */
+:root:not([data-gv-off])
+  :is(article[data-testid='tweet'], [data-testid='trend']):not(
+    :is(article[data-testid='tweet'], [data-testid='trend']) :is(article[data-testid='tweet'], [data-testid='trend'])
+  ):not([data-gv-ok]):not([data-gv-blocked]) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

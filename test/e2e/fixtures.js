@@ -9,6 +9,18 @@ const FIXTURE_HTML = `<!doctype html><html><head><title>fixture</title>
 <style>ytd-rich-item-renderer,ytd-video-renderer,ytd-comment-thread-renderer,yt-lockup-view-model{display:block;width:300px;height:80px;margin:6px;background:#eee;color:#000}</style>
 </head><body><div id="feed"></div></body></html>`;
 
+const X_URL = 'https://x.com/__fixture';
+const X_HTML = `<!doctype html><html><head><title>fixture</title>
+<style>article,[data-testid='trend']{display:block;width:400px;height:90px;margin:6px;background:#eee;color:#000}</style>
+</head><body><div id="feed"></div></body></html>`;
+
+// the Following page lists three accounts as UserCells
+const FOLLOWING_HTML = `<!doctype html><html><head><title>following</title></head><body>
+<div data-testid="UserCell"><img src="https://pbs.example/profile_images/1/a.jpg"><a href="/rockstargames">Rockstar Games</a><div>@rockstargames</div><div>Following</div></div>
+<div data-testid="UserCell"><a href="/digitalfoundry">Digital Foundry</a><div>@digitalfoundry</div></div>
+<div data-testid="UserCell"><a href="/i/lists/1">A list</a></div>
+</body></html>`;
+
 // Launches Chromium with the unpacked extension and serves a fake YouTube page on the real origin.
 const test = base.test.extend({
   context: async ({}, use) => {
@@ -21,6 +33,12 @@ const test = base.test.extend({
 
     await context.route('https://www.youtube.com/__fixture*', route => {
       route.fulfill({ contentType: 'text/html', body: FIXTURE_HTML });
+    });
+    await context.route('https://x.com/__fixture*', route => {
+      route.fulfill({ contentType: 'text/html', body: X_HTML });
+    });
+    await context.route('https://x.com/me/following', route => {
+      route.fulfill({ contentType: 'text/html', body: FOLLOWING_HTML });
     });
     // a signed-in subscriptions page: two channels inside ytInitialData
     await context.route('https://www.youtube.com/feed/channels', route => {
@@ -73,14 +91,14 @@ const test = base.test.extend({
 
   // settings go into localStorage before the page loads, the same cache the content script reads first
   openFixture: async ({ context }, use) => {
-    await use(async (settings = {}) => {
+    await use(async (settings = {}, site = 'youtube') => {
       const page = await context.newPage();
 
       await page.addInitScript(value => {
         // the content script rewrites this cache, so always reset it for a clean start
         localStorage.setItem('gv_settings', JSON.stringify({ level: 'news', panic: false, ...value }));
       }, settings);
-      await page.goto(FIXTURE_URL);
+      await page.goto(site === 'x' ? X_URL : FIXTURE_URL);
 
       return page;
     });
