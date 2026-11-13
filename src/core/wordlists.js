@@ -120,4 +120,21 @@ globalThis.GV_WORDS = {
     /\bplaying (it )?(now|live)\b/,
     /\b(early copy|street date|unboxing|disc)\b/,
   ],
+
+  // What kind of content a content post is. Only used to name the card ("GTA VI music"), never to decide whether it is
+  // shown: the Content level shows or hides all of it together. First match in this order wins.
+  kinds: {
+    music: [/\b(soundtracks?|ost|tracklist|track list|radio (stations?|playlist)|songs?|music|composer)\b/],
+    trailer: [/\b(trailers?|teasers?|screenshots?|key art|artwork|cover art|wallpapers?)\b/],
+    news: [
+      /\b(release dates?|prices?|pre-?orders?|editions?|delay(ed|s)?|take[\s-]two|earnings|announce(d|ment|s)?|statement)\b/,
+      /\b(system requirements|confirm(ed|s)?|launch)\b/,
+    ],
+    details: [
+      /\b(new details|details|everything we know|what we know|info|features?|characters?|setting|reveal(ed|s)?|hints?)\b/,
+    ],
+    review: [
+      /\b(reviews?|scores?|metacritic|ratings?|rated|reactions?|reacts?|breakdown|analysis|theor(y|ies)|opinions?)\b/,
+    ],
+  },
 };

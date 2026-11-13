@@ -2,6 +2,15 @@
 // and a trust badge. Each site supplies an adapter: its tile selectors, how to find the author, and site-only hooks.
 (() => {
   const LABELS = { story: 'Story spoiler', gameplay: 'Gameplay spoiler', content: 'GTA VI content' };
+  // A hidden content post says what it is. Hiding or showing content is still all or nothing.
+  const KIND_LABELS = {
+    music: 'GTA VI music',
+    trailer: 'GTA VI trailer',
+    news: 'GTA VI news',
+    details: 'GTA VI details',
+    review: 'GTA VI review',
+    content: 'GTA VI content',
+  };
   // Comments get a one-line strip, not a card. "Potential" because the matching is by keywords and can be wrong.
   const STRIP_LABELS = {
     story: 'Potential story spoiler hidden',
@@ -245,7 +254,8 @@
       const result = GV.classify(text, { assumeGta, panic });
       const keepHidden = GV.keepsStoryHidden(mode) && result.bucket === 'story';
       const blocked = GV.isBlocked(result, level) && !(trusted && !keepHidden);
-      const info = { label: LABELS[result.bucket], strip: STRIP_LABELS[result.bucket], channel, trusted, comment };
+      const label = result.bucket === 'content' ? KIND_LABELS[result.kind] || LABELS.content : LABELS[result.bucket];
+      const info = { label, strip: STRIP_LABELS[result.bucket], channel, trusted, comment };
 
       // a revealed tile keeps its reveal while it stays blocked
       if (blocked && element.hasAttribute('data-gv-blocked')) {

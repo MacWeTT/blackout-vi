@@ -280,3 +280,43 @@ test('hundreds of tiles added while text churns elsewhere are all judged, and no
 
   expect(result).toEqual({ total: 300, blocked: 100, ok: 200, leaks: 0 });
 });
+
+test('at the Content level every kind of content shows together; at Nothing each card names its kind', async ({
+  openFixture,
+}) => {
+  const titles = [
+    'GTA 6 soundtrack OST',
+    'GTA 6 trailer 3',
+    'GTA 6 release date and price',
+    'GTA 6 everything we know',
+    'GTA 6 review roundup scores',
+  ];
+
+  const shown = await openFixture({ level: 'content' });
+
+  for (const title of titles) {
+    await addTile(shown, TAG, title);
+  }
+
+  await shown.waitForTimeout(300);
+
+  for (let i = 0; i < titles.length; i++) {
+    expect(await stateOf(shown, i), titles[i]).toBe('ok');
+  }
+
+  const hidden = await openFixture({ level: 'nothing' });
+
+  for (const title of titles) {
+    await addTile(hidden, TAG, title);
+  }
+
+  await hidden.waitForTimeout(300);
+
+  const kinds = await hidden.evaluate(() => {
+    return [...document.querySelectorAll('.gv-card__kind')].map(element => {
+      return element.dataset.kind;
+    });
+  });
+
+  expect(kinds).toEqual(['GTA VI music', 'GTA VI trailer', 'GTA VI news', 'GTA VI details', 'GTA VI review']);
+});

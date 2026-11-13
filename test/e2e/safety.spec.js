@@ -187,7 +187,10 @@ test('the card names the kind of spoiler and shows the logo', async ({ openFixtu
   const kinds = [
     ['GTA 6 ending explained', 'Story spoiler'],
     ['GTA 6 gameplay first hour', 'Gameplay spoiler'],
-    ['GTA 6 trailer', 'GTA VI content'],
+    ['GTA 6 trailer', 'GTA VI trailer'],
+    ['GTA 6 soundtrack OST', 'GTA VI music'],
+    ['GTA 6 release date and price', 'GTA VI news'],
+    ['GTA 6 hype is unreal', 'GTA VI content'],
   ];
 
   for (const [title] of kinds) {
