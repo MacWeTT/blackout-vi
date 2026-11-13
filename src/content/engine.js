@@ -368,6 +368,8 @@
         return;
       }
 
+      let news = false;
+
       for (const record of records) {
         if (isOurs(record.target)) {
           continue;
@@ -382,6 +384,8 @@
             continue;
           }
 
+          news = true;
+
           for (const node of record.addedNodes) {
             if (!isOurs(node)) {
               collect(node, false, true);
@@ -391,11 +395,15 @@
           collect(record.target, false, false);
         } else {
           // attributes feed the text we read (aria-label, title, alt), so they force a full re-read
+          news = true;
           collect(record.target, record.type === 'attributes', false);
         }
       }
 
-      flush();
+      // Our own overlay, card and strip text change on every sweep. Sweeping again because of that is an endless loop.
+      if (news) {
+        flush();
+      }
     };
 
     const observer = new MutationObserver(handleMutations);

@@ -87,8 +87,12 @@ GV.engine.start({
       }
 
       overlay.dataset.state = state;
-      overlay.querySelector('.gv-t').textContent =
-        state === 'blocked' ? api.LABELS[watch.r.bucket] + ' hidden' : 'Checking video…';
+      const message = state === 'blocked' ? api.LABELS[watch.r.bucket] + ' hidden' : 'Checking video…';
+      const line = overlay.querySelector('.gv-t');
+
+      if (line.textContent !== message) {
+        line.textContent = message;
+      }
 
       const host = document.getElementById('player');
 
@@ -224,7 +228,8 @@ GV.engine.start({
       onSweep: watchCheck,
       // re-evaluate the open video when settings change
       onApply: () => {
-        watch = { ...watch, r: null, prev: '', shown: false, v: null };
+        // title too: the same video is judged afresh, and its own title must not look like the previous video's
+        watch = { v: null, prev: '', title: '', r: null, shown: false };
       },
     };
   },
