@@ -138,12 +138,14 @@
     };
     toast.append(text, undo);
     document.documentElement.append(toast);
-    setTimeout(() => toast.remove(), 7000);
+    setTimeout(() => {
+      return toast.remove();
+    }, 7000);
   };
 
   // The card is a real element so its text can have a hierarchy; its words come from CSS (data-kind),
   // so they never become part of the tile's own text and never feed back into the classifier.
-  const showCard = (element, label, channel) => {
+  const showCard = (element, label, channel, trusted) => {
     let card = element.querySelector(':scope > .gv-card');
 
     if (!card) {
@@ -160,6 +162,7 @@
     const known = channel.key || channel.name;
 
     badge.hidden = !known;
+    badge.toggleAttribute('data-trusted', Boolean(trusted));
     badge.dataset.key = channel.key;
     badge.dataset.name = channel.name || channel.key;
   };
@@ -177,7 +180,7 @@
     }
   };
 
-  const setState = (element, blocked, label, channel) => {
+  const setState = (element, blocked, label, channel, trusted) => {
     if (blocked === null) {
       element.removeAttribute('data-gv-ok');
       element.removeAttribute('data-gv-blocked');
@@ -194,7 +197,7 @@
       element.setAttribute('data-gv-label', label);
       element.removeAttribute('data-gv-ok');
       sizer.observe(element);
-      showCard(element, label, channel);
+      showCard(element, label, channel, trusted);
 
       for (const video of element.querySelectorAll('video')) {
         video.pause();
@@ -248,10 +251,10 @@
       element.setAttribute('data-gv-label', label);
 
       if (!element.hasAttribute('data-gv-shown')) {
-        showCard(element, label, channel);
+        showCard(element, label, channel, trusted);
       }
     } else {
-      setState(element, blocked, label, channel);
+      setState(element, blocked, label, channel, trusted);
     }
 
     element.__gvSig = signature;
@@ -473,7 +476,14 @@
     if (badge) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      trustChannel({ key: badge.dataset.key, name: badge.dataset.name });
+      const channel = { key: badge.dataset.key, name: badge.dataset.name };
+
+      // a trusted channel's badge shows a check; clicking it again takes the trust back
+      if (badge.hasAttribute('data-trusted')) {
+        untrustChannel(channel);
+      } else {
+        trustChannel(channel);
+      }
 
       return;
     }
@@ -575,6 +585,25 @@
     });
   };
 
+  const untrustChannel = channel => {
+    const same = (key, name) => {
+      return (channel.key && key === channel.key) || name.toLowerCase() === (channel.name || '').toLowerCase();
+    };
+    const before = settings.trusted;
+    const trusted = Object.fromEntries(
+      Object.entries(before).filter(([key, name]) => {
+        return !same(key, name);
+      }),
+    );
+
+    chrome.storage.sync.set({ trusted });
+    apply({ trusted });
+    showToast(`${channel.name || channel.key} is no longer trusted.`, () => {
+      chrome.storage.sync.set({ trusted: before });
+      apply({ trusted: before });
+    });
+  };
+
   // Reads your subscriptions page and stores the list locally; a failed read keeps the old list.
   const syncSubscriptions = async () => {
     try {
@@ -587,8 +616,16 @@
         return;
       }
 
-      const subs = Object.fromEntries(list.map(item => [item.key, item.name]));
-      const avatars = Object.fromEntries(list.map(item => [item.key, item.avatar]));
+      const subs = Object.fromEntries(
+        list.map(item => {
+          return [item.key, item.name];
+        }),
+      );
+      const avatars = Object.fromEntries(
+        list.map(item => {
+          return [item.key, item.avatar];
+        }),
+      );
 
       chrome.storage.local.set({ subs, avatars, syncedAt: Date.now(), syncError: '' });
     } catch {

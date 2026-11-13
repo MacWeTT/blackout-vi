@@ -62,7 +62,9 @@ const test = base.test.extend({
     const id = await page.evaluate(async () => {
       const list = await chrome.developerPrivate.getExtensionsInfo();
 
-      return list.find(item => item.name.includes('Spoiler Shield')).id;
+      return list.find(item => {
+        return item.name.includes('Spoiler Shield');
+      }).id;
     });
 
     await page.close();

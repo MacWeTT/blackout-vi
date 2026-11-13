@@ -1,6 +1,8 @@
 const { test, expect } = require('./fixtures');
 
-const POPUP = id => `chrome-extension://${id}/src/popup/popup.html`;
+const POPUP = id => {
+  return `chrome-extension://${id}/src/popup/popup.html`;
+};
 
 test('popup saves level, subscriptions mode and panic mode and restores them', async ({ context, extensionId }) => {
   const popup = await context.newPage();
@@ -31,12 +33,18 @@ test('panic mode is the last control on the main screen, below the subscriptions
   await popup.goto(POPUP(extensionId));
 
   const order = await popup.evaluate(() => {
-    const top = id => document.getElementById(id).getBoundingClientRect().top;
+    const top = id => {
+      return document.getElementById(id).getBoundingClientRect().top;
+    };
 
     return [top('levels'), top('subs'), top('panic')];
   });
 
-  expect(order).toEqual([...order].sort((a, b) => a - b));
+  expect(order).toEqual(
+    [...order].sort((a, b) => {
+      return a - b;
+    }),
+  );
 });
 
 test('changing the level in the popup reaches an open page', async ({ context, extensionId, openFixture }) => {

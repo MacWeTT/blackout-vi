@@ -201,33 +201,45 @@ ytd-watch-flexy #player {
 .gv-card__trust::before {
   content: '+ Trust ' attr(data-name);
 }
+.gv-card__trust[data-trusted] {
+  border-color: rgba(120, 255, 190, 0.7);
+  background: rgba(10, 80, 50, 0.7);
+}
+.gv-card__trust[data-trusted]::before {
+  content: '\2713  Trusted ' attr(data-name);
+}
 .gv-card__trust[hidden] {
   display: none;
 }
 
+/* Bottom right, bright enough to see on YouTube's dark page. */
 #gv-toast {
   position: fixed;
-  left: 20px;
-  bottom: 20px;
+  right: 24px;
+  bottom: 24px;
   z-index: 2147483647;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 14px;
-  border: 1px solid #3a2358;
-  border-radius: 10px;
-  background: #1d1330;
+  gap: 16px;
+  max-width: 380px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b1a73, #8a2f9a);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
   color: #fff;
   font:
-    13px system-ui,
+    600 14px/1.4 system-ui,
     sans-serif;
 }
 #gv-toast button {
+  flex: none;
+  padding: 6px 14px;
   border: 0;
-  background: none;
-  color: #ff8fb8;
+  border-radius: 999px;
+  background: #fff;
+  color: #2b1055;
   font: inherit;
-  font-weight: 700;
-  text-decoration: underline;
+  font-size: 13px;
   cursor: pointer;
 }

@@ -14,10 +14,11 @@
     return other ? decodeURIComponent(other[1]) : '';
   };
 
-  const lower = text =>
-    String(text || '')
+  const lower = text => {
+    return String(text || '')
       .trim()
       .toLowerCase();
+  };
 
   // A real channel name, not a stat that sits beside it in the tile ("194K views", "3 hours ago", "12:30").
   const isChannelName = text => {
@@ -31,12 +32,16 @@
   };
 
   // Entry key used for storage: the channel's own key, or its lowercased name when the tile showed no link.
-  const entryKey = ref => ref.key || (ref.name ? 'name:' + lower(ref.name) : '');
+  const entryKey = ref => {
+    return ref.key || (ref.name ? 'name:' + lower(ref.name) : '');
+  };
 
   // subsMode is what a trusted channel may show: 'off' (the list is ignored), 'gameplay' (news and gameplay
   // skip the shield, story spoilers stay hidden) or 'all' (every rule is skipped).
   // Nothing is trusted unless the user added it: subscriptions are only a list to pick from.
-  const keepsStoryHidden = mode => mode !== 'all';
+  const keepsStoryHidden = mode => {
+    return mode !== 'all';
+  };
 
   const buildTrust = settings => {
     const { trusted = {}, subsMode = 'gameplay' } = settings;
@@ -135,7 +140,9 @@
 
     walk(data);
 
-    return [...found].map(([key, { name, avatar }]) => ({ key, name, avatar }));
+    return [...found].map(([key, { name, avatar }]) => {
+      return { key, name, avatar };
+    });
   };
 
   globalThis.GV = {

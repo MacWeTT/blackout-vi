@@ -17,7 +17,11 @@ test.describe('classification at the default level (news only)', () => {
       const page = await openFixture();
 
       await addTile(page, TAG, title);
-      await expect.poll(() => stateOf(page, 0)).toBe(expected);
+      await expect
+        .poll(() => {
+          return stateOf(page, 0);
+        })
+        .toBe(expected);
     });
   }
 });
@@ -65,14 +69,22 @@ test('panic mode blocks generic phrases without a GTA mention', async ({ openFix
   const page = await openFixture({ level: 'news', panic: true });
 
   await addTile(page, TAG, 'Elden Ring all endings');
-  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
 });
 
 test('without panic mode a non-GTA video stays visible', async ({ openFixture }) => {
   const page = await openFixture({ level: 'news', panic: false });
 
   await addTile(page, TAG, 'Elden Ring all endings');
-  await expect.poll(() => stateOf(page, 0)).toBe('ok');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('ok');
 });
 
 test('a nested tile is judged by its outer tile', async ({ openFixture }) => {
@@ -86,7 +98,11 @@ test('a nested tile is judged by its outer tile', async ({ openFixture }) => {
     outer.append(inner);
     document.getElementById('feed').append(outer);
   });
-  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
 
   const innerBlocked = await page.evaluate(() => {
     return document.querySelector('yt-lockup-view-model').hasAttribute('data-gv-blocked');
@@ -104,7 +120,11 @@ test('aria-label text counts towards the verdict', async ({ openFixture }) => {
     tile.innerHTML = '<a aria-label="GTA 6 ending explained"></a>';
     document.getElementById('feed').append(tile);
   });
-  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
 });
 
 // Home-feed tiles nest a lockup inside a rich item; only the outer tile is marked, so the inner one must never stay hidden.
@@ -121,14 +141,20 @@ const addNested = (page, text) => {
 };
 
 const innerOpacity = page => {
-  return page.evaluate(() => getComputedStyle(document.querySelector('yt-lockup-view-model')).opacity);
+  return page.evaluate(() => {
+    return getComputedStyle(document.querySelector('yt-lockup-view-model')).opacity;
+  });
 };
 
 test('a normal nested tile is fully visible once classified ok', async ({ openFixture }) => {
   const page = await openFixture();
 
   await addNested(page, 'How to cook pasta');
-  await expect.poll(() => stateOf(page, 0)).toBe('ok');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('ok');
   expect(await innerOpacity(page)).toBe('1');
 });
 
@@ -136,11 +162,19 @@ test('a revealed nested blocked tile shows its content', async ({ openFixture })
   const page = await openFixture();
 
   await addNested(page, 'GTA 6 ending explained');
-  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
   await page.locator('#feed > :first-child').click({ position: { x: 20, y: 20 } });
   await expect(page.locator('#feed > :first-child')).toHaveAttribute('data-gv-shown', '');
   expect(await innerOpacity(page)).toBe('1');
-  expect(await page.evaluate(() => getComputedStyle(document.getElementById('t')).visibility)).toBe('visible');
+  expect(
+    await page.evaluate(() => {
+      return getComputedStyle(document.getElementById('t')).visibility;
+    }),
+  ).toBe('visible');
 });
 
 test('words in neighbouring elements with no space between them are still read as words', async ({ openFixture }) => {
@@ -152,5 +186,9 @@ test('words in neighbouring elements with no space between them are still read a
     tile.innerHTML = '<span>New</span><span>GTA 6 ending explained</span>';
     document.getElementById('feed').append(tile);
   });
-  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
 });

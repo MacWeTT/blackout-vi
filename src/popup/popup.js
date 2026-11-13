@@ -11,7 +11,9 @@ const SUBS_DESCRIPTIONS = {
 };
 const DEFAULTS = { level: 'news', panic: false, subsMode: 'gameplay', trusted: {} };
 
-const $ = id => document.getElementById(id);
+const $ = id => {
+  return document.getElementById(id);
+};
 const buttons = [...document.querySelectorAll('[data-level]')];
 const subsButtons = [...document.querySelectorAll('[data-subs]')];
 
@@ -31,8 +33,12 @@ const entries = () => {
   }
 
   return [...rows.values()]
-    .map(row => ({ ...row, on: Boolean(state.trusted[row.key]), avatar: state.avatars[row.key] || '' }))
-    .sort((a, b) => Number(b.on) - Number(a.on) || a.name.localeCompare(b.name));
+    .map(row => {
+      return { ...row, on: Boolean(state.trusted[row.key]), avatar: state.avatars[row.key] || '' };
+    })
+    .sort((a, b) => {
+      return Number(b.on) - Number(a.on) || a.name.localeCompare(b.name);
+    });
 };
 
 const renderMain = () => {
@@ -62,7 +68,9 @@ const ago = time => {
 
 const renderChannels = () => {
   const query = $('search').value.trim().toLowerCase();
-  const rows = entries().filter(row => row.name.toLowerCase().includes(query));
+  const rows = entries().filter(row => {
+    return row.name.toLowerCase().includes(query);
+  });
   const list = $('list');
 
   list.replaceChildren();
@@ -99,7 +107,9 @@ const renderChannels = () => {
     toggle.type = 'checkbox';
     toggle.className = 'switch';
     toggle.checked = row.on;
-    toggle.onchange = () => handleChannelToggle(row, toggle.checked);
+    toggle.onchange = () => {
+      return handleChannelToggle(row, toggle.checked);
+    };
     item.append(avatar, name, tag, toggle);
     list.append(item);
   }
@@ -162,8 +172,16 @@ const handleSync = async () => {
       return;
     }
 
-    const subs = Object.fromEntries(list.map(item => [item.key, item.name]));
-    const avatars = Object.fromEntries(list.map(item => [item.key, item.avatar]));
+    const subs = Object.fromEntries(
+      list.map(item => {
+        return [item.key, item.name];
+      }),
+    );
+    const avatars = Object.fromEntries(
+      list.map(item => {
+        return [item.key, item.avatar];
+      }),
+    );
 
     chrome.storage.local.set({ subs, avatars, syncedAt: Date.now(), syncError: '' });
   } catch {
@@ -194,9 +212,15 @@ buttons.forEach(button => {
 subsButtons.forEach(button => {
   button.onclick = handleSubsClick;
 });
-$('panic').onchange = () => handleSwitch('panic');
-$('manage').onclick = () => showView(true);
-$('back').onclick = () => showView(false);
+$('panic').onchange = () => {
+  return handleSwitch('panic');
+};
+$('manage').onclick = () => {
+  return showView(true);
+};
+$('back').onclick = () => {
+  return showView(false);
+};
 $('search').oninput = renderChannels;
 $('sync').onclick = handleSync;
 chrome.storage.onChanged.addListener(refresh);

@@ -248,13 +248,22 @@ const cases = [
 ];
 
 const wrong = cases
-  .map(([title, want, options]) => ({ title, want, got: classify(title, options || {}).bucket }))
-  .filter(item => item.got !== item.want);
+  .map(([title, want, options]) => {
+    return { title, want, got: classify(title, options || {}).bucket };
+  })
+  .filter(item => {
+    return item.got !== item.want;
+  });
 
 assert.deepStrictEqual(
   wrong,
   [],
-  'misclassified titles:\n' + wrong.map(i => `${i.got} (want ${i.want}): ${i.title}`).join('\n'),
+  'misclassified titles:\n' +
+    wrong
+      .map(i => {
+        return `${i.got} (want ${i.want}): ${i.title}`;
+      })
+      .join('\n'),
 );
 console.log(`corpus ok (${cases.length} titles)`);
 

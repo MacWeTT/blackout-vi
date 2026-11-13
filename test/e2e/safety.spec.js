@@ -35,7 +35,11 @@ test('a spoiler tile is never visible before it is classified', async ({ openFix
   }
 
   await page.waitForTimeout(500);
-  expect(await page.evaluate(() => window.__leaks)).toEqual([]);
+  expect(
+    await page.evaluate(() => {
+      return window.__leaks;
+    }),
+  ).toEqual([]);
 });
 
 test('a tile with no text yet stays hidden, then is classified once the title arrives', async ({ openFixture }) => {
@@ -45,30 +49,50 @@ test('a tile with no text yet stays hidden, then is classified once the title ar
   await page.waitForTimeout(2500); // longer than the 2s backstop sweep: no timeout may reveal it
 
   expect(await stateOf(page, 0)).toBe('pending');
-  expect(await page.evaluate(() => getComputedStyle(document.getElementById('feed').children[0]).opacity)).toBe('0');
+  expect(
+    await page.evaluate(() => {
+      return getComputedStyle(document.getElementById('feed').children[0]).opacity;
+    }),
+  ).toBe('0');
 
   await page.evaluate(() => {
     document.getElementById('feed').children[0].textContent = 'GTA 6 ending explained';
   });
-  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
 });
 
 test('a title that changes later (tile reuse) is re-judged', async ({ openFixture }) => {
   const page = await openFixture();
 
   await addTile(page, TAG, 'Cooking pasta');
-  await expect.poll(() => stateOf(page, 0)).toBe('ok');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('ok');
   await page.evaluate(() => {
     document.getElementById('feed').children[0].textContent = 'GTA 6 ending explained';
   });
-  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
 });
 
 test('a blocked tile shows the card with its hint', async ({ openFixture }) => {
   const page = await openFixture();
 
   await addTile(page, TAG, 'GTA 6 ending explained');
-  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
   await expect(page.locator('#feed > :first-child > .gv-card')).toBeVisible();
 
   const hint = await page.evaluate(() => {
@@ -87,7 +111,11 @@ test('clicking a blocked tile reveals it and does not navigate', async ({ openFi
     tile.innerHTML = '<a href="/watch?v=abc" id="link">GTA 6 ending explained</a>';
     document.getElementById('feed').append(tile);
   });
-  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
 
   const url = page.url();
 
@@ -95,7 +123,9 @@ test('clicking a blocked tile reveals it and does not navigate', async ({ openFi
   await expect(page.locator(FIRST)).toHaveAttribute('data-gv-shown', '');
   expect(page.url()).toBe(url);
 
-  const visibility = await page.evaluate(() => getComputedStyle(document.getElementById('link')).visibility);
+  const visibility = await page.evaluate(() => {
+    return getComputedStyle(document.getElementById('link')).visibility;
+  });
 
   expect(visibility).toBe('visible');
 });
@@ -104,7 +134,11 @@ test('a revealed tile stays revealed through later sweeps', async ({ openFixture
   const page = await openFixture();
 
   await addTile(page, TAG, 'GTA 6 ending explained');
-  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
   await page.locator(FIRST).click({ position: { x: 20, y: 20 } });
   await page.waitForTimeout(2500);
   await expect(page.locator(FIRST)).toHaveAttribute('data-gv-shown', '');
@@ -161,7 +195,11 @@ test('the card names the kind of spoiler and shows the logo', async ({ openFixtu
   }
 
   for (let i = 0; i < kinds.length; i++) {
-    await expect.poll(() => stateOf(page, i)).toBe('blocked');
+    await expect
+      .poll(() => {
+        return stateOf(page, i);
+      })
+      .toBe('blocked');
 
     const card = await page.evaluate(index => {
       const tile = document.getElementById('feed').children[index];
@@ -188,7 +226,9 @@ test('the card names the kind of spoiler and shows the logo', async ({ openFixtu
     await page.addStyleTag({ content: `#feed > * { width: ${width}px !important; height: ${height}px !important; }` });
     await page.waitForTimeout(150);
     fonts.push(
-      await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.gv-card__hint')).fontSize)),
+      await page.evaluate(() => {
+        return parseFloat(getComputedStyle(document.querySelector('.gv-card__hint')).fontSize);
+      }),
     );
     await page.locator('#feed > :first-child').screenshot({ path: `test-results/card-${width}.png` });
   }
@@ -208,7 +248,11 @@ test('the card logo and background actually load from the extension', async ({ o
   });
 
   await addTile(page, TAG, 'GTA 6 ending explained');
-  await expect.poll(() => stateOf(page, 0)).toBe('blocked');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
   const logo = await page.evaluate(async () => {
     const image = getComputedStyle(document.querySelector('.gv-card__logo')).backgroundImage;
     const response = await fetch(image.match(/url\("?([^")]+)"?\)/)[1]);
@@ -226,5 +270,9 @@ test('the card logo and background actually load from the extension', async ({ o
   });
 
   expect(background).toBe(true);
-  expect(errors.filter(text => /Unsafe attempt to load URL/.test(text))).toEqual([]);
+  expect(
+    errors.filter(text => {
+      return /Unsafe attempt to load URL/.test(text);
+    }),
+  ).toEqual([]);
 });

@@ -17,8 +17,12 @@ const counts = page => {
 
     return {
       total: tiles.length,
-      ok: tiles.filter(t => t.hasAttribute('data-gv-ok')).length,
-      blocked: tiles.filter(t => t.hasAttribute('data-gv-blocked')).length,
+      ok: tiles.filter(t => {
+        return t.hasAttribute('data-gv-ok');
+      }).length,
+      blocked: tiles.filter(t => {
+        return t.hasAttribute('data-gv-blocked');
+      }).length,
     };
   });
 };
