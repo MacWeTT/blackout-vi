@@ -494,20 +494,6 @@
       }
     };
 
-    // The popup asks whether this tab is running the extension, and how much it has done.
-    chrome.runtime.onMessage.addListener((message, sender, respond) => {
-      if (message !== 'gv-status') {
-        return;
-      }
-
-      respond({
-        site: adapter.site,
-        level: settings.level,
-        checked: document.querySelectorAll('[data-gv-ok],[data-gv-blocked]').length,
-        hidden: document.querySelectorAll('[data-gv-blocked]').length,
-      });
-    });
-
     document.addEventListener('click', handleClick, true);
     document.addEventListener('play', handlePlay, true);
 

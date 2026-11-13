@@ -412,40 +412,7 @@ $('global').onchange = () => {
 $('panic').onchange = () => {
   save({ panic: $('panic').checked });
 };
-// Is the extension actually running on the tab being looked at? Catches stale and unsupported tabs.
-const showStatus = (text, kind) => {
-  const line = $('tabStatus');
-
-  line.textContent = text;
-  line.className = `status status--${kind}`;
-};
-
-const checkTab = () => {
-  chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-    const tab = tabs[0];
-    const supported = /^https:\/\/((www|m)\.youtube\.com|x\.com|twitter\.com)\//.test(tab?.url || '');
-
-    if (!supported) {
-      showStatus('Open YouTube or X to see it work on that page.', 'idle');
-
-      return;
-    }
-
-    chrome.tabs.sendMessage(tab.id, 'gv-status', reply => {
-      if (chrome.runtime.lastError || !reply) {
-        // an older copy of the script (loaded before an update) cannot answer; it may still be hiding posts
-        showStatus('This tab has an older copy. Refresh it to finish updating.', 'warn');
-
-        return;
-      }
-
-      showStatus(`Running on this tab · ${reply.checked} checked, ${reply.hidden} hidden`, 'ok');
-    });
-  });
-};
-
 $('search').oninput = renderTrusted;
 $('sync').onclick = handleSync;
 chrome.storage.onChanged.addListener(refresh);
 refresh();
-checkTab();

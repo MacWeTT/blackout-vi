@@ -323,34 +323,3 @@ test.describe('trusted tab', () => {
     await expect(popup.locator('.channel__name')).toHaveText(['Channel 12']);
   });
 });
-
-test.describe('tab status', () => {
-  test('on a page that is not YouTube or X it says where to go', async ({ context, extensionId }) => {
-    const popup = await openPopup(context, extensionId);
-
-    await expect(popup.locator('#tabStatus')).toContainText('Open YouTube or X');
-  });
-
-  test('the page script answers the popup with what it has done', async ({ context, extensionId, openFixture }) => {
-    const youtube = await openFixture();
-
-    await addTile(youtube, 'ytd-rich-item-renderer', 'GTA 6 ending explained');
-    await addTile(youtube, 'ytd-rich-item-renderer', 'Cooking pasta');
-    await expect
-      .poll(() => {
-        return stateOf(youtube, 1);
-      })
-      .toBe('ok');
-
-    const popup = await openPopup(context, extensionId);
-    const reply = await popup.evaluate(() => {
-      return new Promise(resolve => {
-        chrome.tabs.query({ url: 'https://www.youtube.com/*' }, tabs => {
-          chrome.tabs.sendMessage(tabs[0].id, 'gv-status', resolve);
-        });
-      });
-    });
-
-    expect(reply).toEqual({ site: 'youtube', level: 'news', checked: 2, hidden: 1 });
-  });
-});

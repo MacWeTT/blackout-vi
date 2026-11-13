@@ -362,31 +362,3 @@ body {
   opacity: 0.45;
   pointer-events: none;
 }
-
-.status {
-  margin: 12px 2px 0;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.status::before {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 6px;
-  border-radius: 50%;
-  background: #b8a6cf;
-}
-
-.status--ok::before {
-  background: #35c47c;
-}
-
-.status--warn {
-  color: #8a5a00;
-}
-
-.status--warn::before {
-  background: #f0a500;
-}
