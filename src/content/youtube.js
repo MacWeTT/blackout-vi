@@ -24,10 +24,9 @@
   let settings = {
     level: 'news',
     panic: false,
-    subsMode: 'same',
+    subsMode: 'gameplay',
     trusted: {},
     subs: {},
-    disabled: {},
   };
   let trust = GV.buildTrust(settings);
 
@@ -547,7 +546,6 @@
       panic: settings.panic,
       subsMode: settings.subsMode,
       trusted: settings.trusted,
-      disabled: settings.disabled,
     };
 
     chrome.storage.sync.get(defaults, synced => {
@@ -562,11 +560,9 @@
     const key = GV.entryKey(channel);
     const name = channel.name || channel.key;
     const trusted = { ...settings.trusted, [key]: name };
-    const disabled = { ...settings.disabled };
 
-    delete disabled[key];
-    chrome.storage.sync.set({ trusted, disabled });
-    apply({ trusted, disabled });
+    chrome.storage.sync.set({ trusted });
+    apply({ trusted });
 
     const kept = GV.keepsStoryHidden(settings.subsMode) ? ' Story spoilers stay hidden.' : '';
 
@@ -592,8 +588,9 @@
       }
 
       const subs = Object.fromEntries(list.map(item => [item.key, item.name]));
+      const avatars = Object.fromEntries(list.map(item => [item.key, item.avatar]));
 
-      chrome.storage.local.set({ subs, syncedAt: Date.now(), syncError: '' });
+      chrome.storage.local.set({ subs, avatars, syncedAt: Date.now(), syncError: '' });
     } catch {
       chrome.storage.local.set({ syncError: 'Could not read your subscriptions.' });
     }
@@ -608,7 +605,7 @@
 
   // refresh the list once a day while the switch is on
   chrome.storage.local.get({ syncedAt: 0 }, ({ syncedAt }) => {
-    if (GV.subsTrusted(settings.subsMode) && Date.now() - syncedAt > 24 * 60 * 60 * 1000) {
+    if (Object.keys(settings.subs).length && Date.now() - syncedAt > 24 * 60 * 60 * 1000) {
       syncSubscriptions();
     }
   });

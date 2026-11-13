@@ -5,38 +5,41 @@ const DESCRIPTIONS = {
   off: 'Protection off. Everything shows.',
 };
 const SUBS_DESCRIPTIONS = {
-  same: 'Videos from channels you subscribe to follow the same rules as everyone else.',
-  gameplay: 'Subscribed channels may show news and gameplay; story spoilers stay hidden.',
-  all: 'Subscribed channels skip the shield completely, spoilers included.',
+  off: 'Every channel follows the same rules, including the ones you trust.',
+  gameplay: 'Channels you trust may show news and gameplay; story spoilers stay hidden.',
+  all: 'Channels you trust skip the shield completely, spoilers included.',
 };
-const DEFAULTS = { level: 'news', panic: false, subsMode: 'same', trusted: {}, disabled: {} };
+const DEFAULTS = { level: 'news', panic: false, subsMode: 'gameplay', trusted: {} };
 
 const $ = id => document.getElementById(id);
 const buttons = [...document.querySelectorAll('[data-level]')];
 const subsButtons = [...document.querySelectorAll('[data-subs]')];
 
 // everything the screens draw comes from one state object, refreshed from storage
-let state = { ...DEFAULTS, subs: {}, syncedAt: 0, syncError: '' };
+let state = { ...DEFAULTS, subs: {}, avatars: {}, syncedAt: 0, syncError: '' };
 
+// Every subscription is a candidate (off by default); the trusted ones are the exclusion list.
 const entries = () => {
-  const rows = [];
+  const rows = new Map();
 
   for (const [key, name] of Object.entries(state.subs)) {
-    rows.push({ key, name, tag: 'subscribed' });
+    rows.set(key, { key, name, tag: 'subscribed' });
   }
 
   for (const [key, name] of Object.entries(state.trusted)) {
-    rows.push({ key, name, tag: 'added by you' });
+    rows.set(key, rows.get(key) || { key, name, tag: 'added by you' });
   }
 
-  return rows.sort((a, b) => a.name.localeCompare(b.name));
+  return [...rows.values()]
+    .map(row => ({ ...row, on: Boolean(state.trusted[row.key]), avatar: state.avatars[row.key] || '' }))
+    .sort((a, b) => Number(b.on) - Number(a.on) || a.name.localeCompare(b.name));
 };
 
 const renderMain = () => {
   $('desc').textContent = DESCRIPTIONS[state.level];
   $('panic').checked = state.panic;
   $('subsDesc').textContent = SUBS_DESCRIPTIONS[state.subsMode];
-  $('manage').dataset.count = entries().length;
+  $('manage').dataset.count = Object.keys(state.trusted).length;
 
   buttons.forEach(button => {
     button.classList.toggle('levels__button--on', button.dataset.level === state.level);
@@ -68,27 +71,35 @@ const renderChannels = () => {
     const empty = document.createElement('div');
 
     empty.className = 'list__empty';
-    empty.textContent = 'No channels yet. Sync, or use "Trust" on a hidden card.';
+    empty.textContent = 'Nothing trusted yet. Sync to pick from your subscriptions, or use Trust on a hidden card.';
     list.append(empty);
   }
 
   for (const row of rows) {
     const item = document.createElement('label');
-    const avatar = document.createElement('span');
+    const avatar = document.createElement(row.avatar ? 'img' : 'span');
     const name = document.createElement('span');
     const tag = document.createElement('span');
     const toggle = document.createElement('input');
 
     item.className = 'channel';
     avatar.className = 'channel__avatar';
+
+    if (row.avatar) {
+      avatar.src = row.avatar;
+      avatar.alt = '';
+    } else {
+      avatar.textContent = row.name.charAt(0).toUpperCase();
+    }
+
     name.className = 'channel__name';
     name.textContent = row.name;
     tag.className = 'channel__tag';
     tag.textContent = row.tag;
     toggle.type = 'checkbox';
     toggle.className = 'switch';
-    toggle.checked = !state.disabled[row.key];
-    toggle.onchange = () => handleChannelToggle(row.key, toggle.checked);
+    toggle.checked = row.on;
+    toggle.onchange = () => handleChannelToggle(row, toggle.checked);
     item.append(avatar, name, tag, toggle);
     list.append(item);
   }
@@ -96,8 +107,7 @@ const renderChannels = () => {
   const count = Object.keys(state.subs).length;
 
   $('syncTitle').textContent = state.syncedAt ? `Synced ${ago(state.syncedAt)}` : 'Not synced yet';
-  $('syncDetail').textContent =
-    state.syncError || `${count} channels from your subscriptions. Syncs from your YouTube account.`;
+  $('syncDetail').textContent = state.syncError || `${count} subscriptions found. Switch on the channels you trust.`;
 };
 
 const render = () => {
@@ -119,17 +129,18 @@ const handleSwitch = field => {
   chrome.storage.sync.set({ [field]: state[field] });
 };
 
-const handleChannelToggle = (key, on) => {
-  const disabled = { ...state.disabled };
+const handleChannelToggle = (row, on) => {
+  const trusted = { ...state.trusted };
 
   if (on) {
-    delete disabled[key];
+    trusted[row.key] = row.name;
   } else {
-    disabled[key] = true;
+    delete trusted[row.key];
   }
 
-  state.disabled = disabled;
-  chrome.storage.sync.set({ disabled });
+  state.trusted = trusted;
+  render();
+  chrome.storage.sync.set({ trusted });
 };
 
 const showView = channels => {
@@ -152,8 +163,9 @@ const handleSync = async () => {
     }
 
     const subs = Object.fromEntries(list.map(item => [item.key, item.name]));
+    const avatars = Object.fromEntries(list.map(item => [item.key, item.avatar]));
 
-    chrome.storage.local.set({ subs, syncedAt: Date.now(), syncError: '' });
+    chrome.storage.local.set({ subs, avatars, syncedAt: Date.now(), syncError: '' });
   } catch {
     chrome.storage.local.set({ syncError: 'Could not read your subscriptions. Check your connection.' });
   }
@@ -161,7 +173,7 @@ const handleSync = async () => {
 
 const refresh = () => {
   chrome.storage.sync.get(DEFAULTS, synced => {
-    chrome.storage.local.get({ subs: {}, syncedAt: 0, syncError: '' }, local => {
+    chrome.storage.local.get({ subs: {}, avatars: {}, syncedAt: 0, syncError: '' }, local => {
       state = { ...state, ...synced, ...local };
       render();
     });

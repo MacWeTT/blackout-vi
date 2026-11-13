@@ -33,26 +33,23 @@
   // Entry key used for storage: the channel's own key, or its lowercased name when the tile showed no link.
   const entryKey = ref => ref.key || (ref.name ? 'name:' + lower(ref.name) : '');
 
-  // subsMode: 'same' (subscriptions get no special treatment), 'gameplay' (they skip news and gameplay rules,
-  // story spoilers stay hidden) or 'all' (they skip every rule). Channels you trusted by hand follow the same story rule.
-  const subsTrusted = mode => mode === 'gameplay' || mode === 'all';
+  // subsMode is what a trusted channel may show: 'off' (the list is ignored), 'gameplay' (news and gameplay
+  // skip the shield, story spoilers stay hidden) or 'all' (every rule is skipped).
+  // Nothing is trusted unless the user added it: subscriptions are only a list to pick from.
   const keepsStoryHidden = mode => mode !== 'all';
 
-  // The enabled set of keys and names. Subscriptions count only outside 'same'; disabled entries never count.
   const buildTrust = settings => {
-    const { trusted = {}, subs = {}, disabled = {}, subsMode = 'same' } = settings;
-    const entries = { ...(subsTrusted(subsMode) ? subs : {}), ...trusted };
+    const { trusted = {}, subsMode = 'gameplay' } = settings;
+    const entries = subsMode === 'off' ? {} : trusted;
     const keys = new Set();
     const names = new Set();
 
     for (const [key, name] of Object.entries(entries)) {
-      if (!disabled[key]) {
-        keys.add(key);
+      keys.add(key);
 
-        // a name that looks like a stat must never match other tiles
-        if (isChannelName(name)) {
-          names.add(lower(name));
-        }
+      // a name that looks like a stat must never match other tiles
+      if (isChannelName(name)) {
+        names.add(lower(name));
       }
     }
 
@@ -123,9 +120,11 @@
         const url = renderer.navigationEndpoint?.browseEndpoint?.canonicalBaseUrl || '';
         const key = channelKeyFromHref(url) || renderer.channelId || '';
         const name = renderer.title?.simpleText || '';
+        const picture = renderer.thumbnail?.thumbnails?.[0]?.url || '';
+        const avatar = picture.startsWith('//') ? 'https:' + picture : picture;
 
         if (key && name) {
-          found.set(key, name);
+          found.set(key, { name, avatar });
         }
       }
 
@@ -136,7 +135,7 @@
 
     walk(data);
 
-    return [...found].map(([key, name]) => ({ key, name }));
+    return [...found].map(([key, { name, avatar }]) => ({ key, name, avatar }));
   };
 
   globalThis.GV = {
@@ -147,7 +146,6 @@
     buildTrust,
     isTrusted,
     keepsStoryHidden,
-    subsTrusted,
     parseSubscriptions,
   };
 })();

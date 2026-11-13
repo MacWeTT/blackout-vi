@@ -30,6 +30,7 @@ const test = base.test.extend({
             channelRenderer: {
               channelId: 'UC1',
               title: { simpleText: 'Rockstar Games' },
+              thumbnail: { thumbnails: [{ url: '//yt3.example/rockstar.jpg' }] },
               navigationEndpoint: { browseEndpoint: { canonicalBaseUrl: '/@RockstarGames' } },
             },
           },

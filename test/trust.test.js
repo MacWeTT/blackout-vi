@@ -23,29 +23,31 @@ for (const name of ['Rockstar Games', 'Digital Foundry', 'TGG', 'Dattrax Plays']
 }
 
 // a stat-like name saved by mistake never matches other tiles
-assert.ok(!isTrusted(buildTrust({ trusted: { '@x': '194k' }, subsMode: 'same' }), { key: '', name: '194k' }));
+assert.ok(!isTrusted(buildTrust({ trusted: { '@x': '194k' }, subsMode: 'gameplay' }), { key: '', name: '194k' }));
 
 // entry keys: the link key, else the lowercased name
 assert.strictEqual(entryKey({ key: '@x', name: 'X' }), '@x');
 assert.strictEqual(entryKey({ key: '', name: 'Dattrax Plays' }), 'name:dattrax plays');
 
-// trust sets: subscriptions count only while the switch is on; disabled entries never count
+// trust set: only channels you added count. Subscriptions are a pick-list and are never trusted by themselves.
 const settings = {
   subsMode: 'gameplay',
   subs: { '@rockstargames': 'Rockstar Games', '@tgg': 'TGG' },
-  trusted: { 'name:dattrax plays': 'Dattrax Plays' },
-  disabled: { '@tgg': true },
+  trusted: { '@tgg': 'TGG', 'name:dattrax plays': 'Dattrax Plays' },
 };
 const trust = buildTrust(settings);
 
-assert.ok(isTrusted(trust, { key: '@rockstargames', name: '' }));
-assert.ok(isTrusted(trust, { key: '', name: 'rockstar games' }), 'name match ignores case');
+assert.ok(isTrusted(trust, { key: '@tgg', name: '' }));
+assert.ok(isTrusted(trust, { key: '', name: 'tgg' }), 'name match ignores case');
 assert.ok(isTrusted(trust, { key: '', name: 'Dattrax Plays' }));
-assert.ok(!isTrusted(trust, { key: '@tgg', name: '' }), 'disabled entry');
+assert.ok(!isTrusted(trust, { key: '@rockstargames', name: 'Rockstar Games' }), 'a subscription you did not trust');
 assert.ok(!isTrusted(trust, { key: '@someoneelse', name: 'Someone Else' }));
 assert.ok(!isTrusted(trust, { key: '', name: '' }), 'an unidentified channel is never trusted');
 assert.ok(!isTrusted(trust, null));
-assert.ok(!isTrusted(buildTrust({ ...settings, subsMode: 'same' }), { key: '@rockstargames', name: 'Rockstar Games' }));
+assert.ok(
+  !isTrusted(buildTrust({ ...settings, subsMode: 'off' }), { key: '@tgg', name: 'TGG' }),
+  'off ignores the list',
+);
 
 // subscriptions page: channelRenderer entries inside ytInitialData
 const data = {
@@ -54,6 +56,7 @@ const data = {
       channelRenderer: {
         channelId: 'UC1',
         title: { simpleText: 'Rockstar Games' },
+        thumbnail: { thumbnails: [{ url: '//yt3.example/rockstar.jpg' }] },
         navigationEndpoint: { browseEndpoint: { canonicalBaseUrl: '/@RockstarGames' } },
       },
     },
@@ -64,8 +67,8 @@ const data = {
 const html = `<html><script>var ytInitialData = ${JSON.stringify(data)};</script><script>var other = {a:1};</script></html>`;
 
 assert.deepStrictEqual(parseSubscriptions(html), [
-  { key: '@rockstargames', name: 'Rockstar Games' },
-  { key: 'UC2', name: 'No Handle {tricky} "quote"' },
+  { key: '@rockstargames', name: 'Rockstar Games', avatar: 'https://yt3.example/rockstar.jpg' },
+  { key: 'UC2', name: 'No Handle {tricky} "quote"', avatar: '' },
 ]);
 assert.deepStrictEqual(parseSubscriptions('<html>nothing here</html>'), []);
 assert.deepStrictEqual(parseSubscriptions('<script>var ytInitialData = {broken</script>'), []);

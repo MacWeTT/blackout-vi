@@ -7,18 +7,18 @@ test('popup saves level, subscriptions mode and panic mode and restores them', a
 
   await popup.goto(POPUP(extensionId));
   await expect(popup.locator('[data-level].levels__button--on')).toHaveText('News');
-  await expect(popup.locator('[data-subs].levels__button--on')).toHaveText('Same rules');
+  await expect(popup.locator('[data-subs].levels__button--on')).toHaveText('Allow gameplay');
 
   await popup.click('[data-level="story"]');
-  await popup.click('[data-subs="gameplay"]');
+  await popup.click('[data-subs="all"]');
   await popup.check('#panic');
   await expect(popup.locator('[data-level].levels__button--on')).toHaveText('Story');
   await expect(popup.locator('#desc')).toContainText('endings');
-  await expect(popup.locator('#subsDesc')).toContainText('story spoilers stay hidden');
+  await expect(popup.locator('#subsDesc')).toContainText('skip the shield');
 
   await popup.reload();
   await expect(popup.locator('[data-level].levels__button--on')).toHaveText('Story');
-  await expect(popup.locator('[data-subs].levels__button--on')).toHaveText('Allow gameplay');
+  await expect(popup.locator('[data-subs].levels__button--on')).toHaveText('Allow all');
   await expect(popup.locator('#panic')).toBeChecked();
 });
 
