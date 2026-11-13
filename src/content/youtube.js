@@ -211,6 +211,9 @@ GV.engine.start({
       assumeGta: element => {
         return element.localName === 'ytd-comment-thread-renderer' && Boolean(watch.r?.gta);
       },
+      isComment: element => {
+        return element.localName === 'ytd-comment-thread-renderer';
+      },
       skipTrust: element => {
         return element.localName === 'ytd-comment-thread-renderer';
       },

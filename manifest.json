@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "GTA VI Spoiler Shield",
   "version": "0.1.0",
-  "description": "Hides GTA VI story and gameplay spoilers on YouTube and X before they ever paint.",
+  "description": "Hides GTA VI story and gameplay spoilers on YouTube, X and Reddit before they ever paint.",
   "permissions": ["storage"],
   "host_permissions": ["https://www.youtube.com/*"],
   "action": {
@@ -24,7 +24,14 @@
   "web_accessible_resources": [
     {
       "resources": ["assets/images/background.jpg", "assets/images/gta-vi-logo.png"],
-      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*", "https://x.com/*", "https://twitter.com/*"]
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*",
+        "https://x.com/*",
+        "https://twitter.com/*",
+        "https://www.reddit.com/*",
+        "https://reddit.com/*"
+      ]
     }
   ],
   "content_scripts": [
@@ -50,6 +57,18 @@
         "src/content/x.js"
       ],
       "css": ["src/content/shared.css", "src/content/x.css"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.reddit.com/*", "https://reddit.com/*"],
+      "js": [
+        "src/core/wordlists.js",
+        "src/core/classifier.js",
+        "src/core/trust.js",
+        "src/content/engine.js",
+        "src/content/reddit.js"
+      ],
+      "css": ["src/content/shared.css", "src/content/reddit.css"],
       "run_at": "document_start"
     }
   ]

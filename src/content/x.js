@@ -34,7 +34,7 @@ GV.engine.start({
     return { key, name };
   },
 
-  setup: () => {
+  setup: api => {
     const following = /^\/[^/]+\/following\/?$/;
     const profile = /^\/([^/?#]+)$/;
     let timer = null;
@@ -89,7 +89,46 @@ GV.engine.start({
       });
     };
 
+    // On a post's own page the other tweets are replies: comments. They are judged with the post's GTA context, so
+    // "the ending was wild" under a GTA VI post is a spoiler even though it never says "GTA".
+    const statusId = () => {
+      return /^\/[^/]+\/status\/(\d+)/.exec(location.pathname)?.[1] || '';
+    };
+
+    const focal = id => {
+      return [...document.querySelectorAll("article[data-testid='tweet']")].find(article => {
+        return Boolean(article.querySelector(`a[href$="/status/${id}"]`));
+      });
+    };
+
+    const isReply = element => {
+      const id = statusId();
+
+      return Boolean(id) && element !== focal(id);
+    };
+
+    const aboutGta = () => {
+      const post = focal(statusId());
+
+      if (!post) {
+        return false;
+      }
+
+      const raw = post.textContent;
+
+      if (post.__gvCtxRaw !== raw) {
+        post.__gvCtxRaw = raw;
+        post.__gvCtx = GV.classify(api.textOf(post)).gta;
+      }
+
+      return Boolean(post.__gvCtx);
+    };
+
     return {
+      isComment: isReply,
+      assumeGta: element => {
+        return isReply(element) && aboutGta();
+      },
       // only the Following page is read, and not more than twice a second
       onSweep: () => {
         if (following.test(location.pathname) && !timer) {

@@ -6,12 +6,17 @@ const base = require('@playwright/test');
 const EXTENSION = path.resolve(__dirname, '../..');
 const FIXTURE_URL = 'https://www.youtube.com/__fixture';
 const FIXTURE_HTML = `<!doctype html><html><head><title>fixture</title>
-<style>ytd-rich-item-renderer,ytd-video-renderer,ytd-comment-thread-renderer,yt-lockup-view-model{display:block;width:300px;height:80px;margin:6px;background:#eee;color:#000}</style>
+<style>ytd-rich-item-renderer,ytd-video-renderer,ytd-comment-thread-renderer,yt-lockup-view-model{display:block;width:300px;height:80px;margin:6px;background:#eee;color:#000}ytd-comment-thread-renderer{height:auto;min-height:30px}</style>
 </head><body><div id="feed"></div></body></html>`;
 
 const X_URL = 'https://x.com/__fixture';
 const X_HTML = `<!doctype html><html><head><title>fixture</title>
 <style>article,[data-testid='trend']{display:block;width:400px;height:90px;margin:6px;background:#eee;color:#000}</style>
+</head><body><div id="feed"></div></body></html>`;
+
+const REDDIT_URL = 'https://www.reddit.com/__fixture';
+const REDDIT_HTML = `<!doctype html><html><head><title>fixture</title>
+<style>shreddit-post,shreddit-comment{display:block;width:420px;margin:6px;padding:6px;background:#eee;color:#000}</style>
 </head><body><div id="feed"></div></body></html>`;
 
 // the Following page lists three accounts as UserCells
@@ -36,6 +41,13 @@ const test = base.test.extend({
     });
     await context.route('https://x.com/__fixture*', route => {
       route.fulfill({ contentType: 'text/html', body: X_HTML });
+    });
+    // a post's own page on X: the tweet being read, then its replies
+    await context.route('https://x.com/someone/status/*', route => {
+      route.fulfill({ contentType: 'text/html', body: X_HTML });
+    });
+    await context.route('https://www.reddit.com/__fixture*', route => {
+      route.fulfill({ contentType: 'text/html', body: REDDIT_HTML });
     });
     await context.route('https://x.com/me/following', route => {
       route.fulfill({ contentType: 'text/html', body: FOLLOWING_HTML });
@@ -98,7 +110,9 @@ const test = base.test.extend({
         // the content script rewrites this cache, so always reset it for a clean start
         localStorage.setItem('gv_settings', JSON.stringify({ level: 'news', panic: false, ...value }));
       }, settings);
-      await page.goto(site === 'x' ? X_URL : FIXTURE_URL);
+      const urls = { x: X_URL, reddit: REDDIT_URL };
+
+      await page.goto(urls[site] || FIXTURE_URL);
 
       return page;
     });

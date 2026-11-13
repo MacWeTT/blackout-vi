@@ -4,7 +4,7 @@
 }
 /* A blocked tile hides everything except our card. The card is a real element (built by the script)
    so its text can have a hierarchy; its words come from CSS so they never leak into the tile's own text. */
-:root:not([data-gv-off]) [data-gv-blocked]:not([data-gv-shown]) :not(.gv-card, .gv-card *) {
+:root:not([data-gv-off]) [data-gv-blocked]:not([data-gv-shown]) :not(.gv-card, .gv-card *, .gv-strip, .gv-strip *) {
   visibility: hidden !important;
 }
 
@@ -136,4 +136,51 @@
   font: inherit;
   font-size: 13px;
   cursor: pointer;
+}
+
+/* A hidden comment collapses to one line: everything but the strip goes away (replies fold with it). */
+:root:not([data-gv-off]) [data-gv-comment][data-gv-blocked]:not([data-gv-shown]) > :not(.gv-strip) {
+  display: none !important;
+}
+
+:root:not([data-gv-off]) [data-gv-comment][data-gv-blocked]:not([data-gv-shown]) {
+  /* loose text directly inside the comment is not an element, so display:none above cannot hide it */
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+.gv-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(127, 63, 224, 0.55), rgba(232, 63, 180, 0.4));
+  color: #fff;
+  font:
+    600 13px/1.3 system-ui,
+    sans-serif;
+}
+
+.gv-strip__kind::before {
+  content: '\1F512  ' attr(data-kind);
+}
+
+.gv-strip__show {
+  margin-left: auto;
+  padding: 3px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #2b1055;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.gv-strip__show::before {
+  content: 'Show';
 }

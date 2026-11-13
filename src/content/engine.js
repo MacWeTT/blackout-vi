@@ -3,6 +3,12 @@
 (() => {
   const LEVELS = ['all', 'news', 'story', 'off'];
   const LABELS = { story: 'Story spoiler', gameplay: 'Gameplay spoiler', news: 'GTA VI content' };
+  // Comments get a one-line strip, not a card. "Potential" because the matching is by keywords and can be wrong.
+  const STRIP_LABELS = {
+    story: 'Potential story spoiler hidden',
+    gameplay: 'Potential gameplay spoiler hidden',
+    news: 'Potential spoiler hidden',
+  };
   const KEY = 'gv_settings';
 
   const start = adapter => {
@@ -131,8 +137,24 @@
       badge.dataset.name = channel.name || channel.key;
     };
 
+    // The strip's words come from CSS too (data-kind), so they never feed back into the classifier. Only its
+    // Show button reveals the comment.
+    const showStrip = (element, label) => {
+      let strip = element.querySelector(':scope > .gv-strip');
+
+      if (!strip) {
+        strip = document.createElement('div');
+        strip.className = 'gv-strip';
+        strip.innerHTML = '<span class="gv-strip__kind"></span><button class="gv-strip__show" type="button"></button>';
+        element.append(strip);
+      }
+
+      strip.querySelector('.gv-strip__kind').dataset.kind = label;
+    };
+
     const hideCard = element => {
       element.querySelector(':scope > .gv-card')?.remove();
+      element.querySelector(':scope > .gv-strip')?.remove();
     };
 
     const resumeIn = element => {
@@ -144,11 +166,12 @@
       }
     };
 
-    const setState = (element, blocked, label, channel, trusted) => {
+    const setState = (element, blocked, info = {}) => {
       if (blocked === null) {
         element.removeAttribute('data-gv-ok');
         element.removeAttribute('data-gv-blocked');
         element.removeAttribute('data-gv-shown');
+        element.removeAttribute('data-gv-comment');
         sizer.unobserve(element);
         hideCard(element);
         delete element.__gvSig;
@@ -158,10 +181,16 @@
 
       if (blocked) {
         element.setAttribute('data-gv-blocked', '');
-        element.setAttribute('data-gv-label', label);
+        element.setAttribute('data-gv-label', info.label);
         element.removeAttribute('data-gv-ok');
-        sizer.observe(element);
-        showCard(element, label, channel, trusted);
+        element.toggleAttribute('data-gv-comment', Boolean(info.comment));
+
+        if (info.comment) {
+          showStrip(element, info.strip);
+        } else {
+          sizer.observe(element);
+          showCard(element, info.label, info.channel, info.trusted);
+        }
 
         for (const video of element.querySelectorAll('video')) {
           video.pause();
@@ -174,6 +203,7 @@
       element.setAttribute('data-gv-ok', '');
       element.removeAttribute('data-gv-blocked');
       element.removeAttribute('data-gv-shown');
+      element.removeAttribute('data-gv-comment');
       sizer.unobserve(element);
       hideCard(element);
       resumeIn(element);
@@ -204,9 +234,10 @@
       }
 
       const assumeGta = Boolean(hooks.assumeGta?.(element));
+      const comment = Boolean(hooks.isComment?.(element));
       const channel = hooks.skipTrust?.(element) ? { key: '', name: '' } : adapter.channelOf(element, clean);
       const trusted = GV.isTrusted(trust, channel);
-      const signature = [text, assumeGta, channel.key, channel.name, trusted].join('|');
+      const signature = [text, assumeGta, comment, channel.key, channel.name, trusted].join('|');
 
       if (element.__gvSig === signature && element.__gvStamp === stamp) {
         return;
@@ -215,17 +246,21 @@
       const result = GV.classify(text, { assumeGta, panic });
       const keepHidden = GV.keepsStoryHidden(mode) && result.bucket === 'story';
       const blocked = GV.isBlocked(result, level) && !(trusted && !keepHidden);
-      const label = LABELS[result.bucket];
+      const info = { label: LABELS[result.bucket], strip: STRIP_LABELS[result.bucket], channel, trusted, comment };
 
       // a revealed tile keeps its reveal while it stays blocked
       if (blocked && element.hasAttribute('data-gv-blocked')) {
-        element.setAttribute('data-gv-label', label);
+        element.setAttribute('data-gv-label', info.label);
 
         if (!element.hasAttribute('data-gv-shown')) {
-          showCard(element, label, channel, trusted);
+          if (comment) {
+            showStrip(element, info.strip);
+          } else {
+            showCard(element, info.label, channel, trusted);
+          }
         }
       } else {
-        setState(element, blocked, label, channel, trusted);
+        setState(element, blocked, info);
       }
 
       element.__gvSig = signature;
@@ -262,7 +297,7 @@
     };
 
     // our own card, toast and overlay change the DOM too; reacting to them would only make more work
-    const OURS = '.gv-card,#gv-toast,#gv-overlay';
+    const OURS = '.gv-card,.gv-strip,#gv-toast,#gv-overlay';
     const isOurs = node => {
       return node.nodeType === 1
         ? node.matches(OURS) || Boolean(node.closest(OURS))
@@ -465,7 +500,14 @@
 
       event.preventDefault();
       event.stopImmediatePropagation();
+
+      // a comment reveals only from its Show button, so a stray click in a thread never shows a spoiler
+      if (tile.hasAttribute('data-gv-comment') && !event.target.closest('.gv-strip__show')) {
+        return;
+      }
+
       tile.setAttribute('data-gv-shown', '');
+      tile.querySelector(':scope > .gv-strip')?.remove();
       resumeIn(tile);
     };
 
@@ -530,6 +572,7 @@
       sizer,
       root,
       clean,
+      textOf,
       idle,
       resumeIn,
       settings: () => {
