@@ -22,9 +22,13 @@ for (const [title, options, pattern] of reasons) {
   assert.match(result.why, pattern, `why for: ${title}`);
 }
 
+// gameplay flags say why too (the word that made it gameplay)
+assert.match(classify('GTA 6 gameplay first hour').why, /gameplay/);
+assert.match(classify('Rockstar had GTAVI running on PS5 Pro at 60fps and removed all of the cars').why, /cars/);
+
 // no reason when nothing flagged
 assert.strictEqual(classify('GTA 6 trailer 3').why, undefined);
-assert.strictEqual(classify('GTA 6 gameplay').why, undefined);
+assert.strictEqual(classify('Cooking pasta').why, undefined);
 assert.strictEqual(classify('Cooking pasta').why, undefined);
 
 console.log('why ok');

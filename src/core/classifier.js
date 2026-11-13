@@ -1,5 +1,5 @@
 // Pure and synchronous: it runs inside a MutationObserver callback, before paint.
-// A story result carries `why`: the word or rule that flagged it, so a surprising flag can be explained at a glance.
+// A story or gameplay result carries `why`: the word or rule that flagged it, so a surprising flag can be explained at a glance.
 (() => {
   const WORDS = globalThis.GV_WORDS;
 
@@ -115,8 +115,10 @@
       return { gta: true, bucket: 'story', why: `panic: ${why}` };
     }
 
-    if (matchesAny(WORDS.gameplay, text)) {
-      return { gta: true, bucket: 'gameplay' };
+    const played = firstMatch(WORDS.gameplay, text);
+
+    if (played) {
+      return { gta: true, bucket: 'gameplay', why: `"${played}"` };
     }
 
     return { gta: true, bucket: 'content', kind: kindOf(text) };
@@ -155,8 +157,10 @@
       return { gta: true, bucket: 'story', why };
     }
 
-    if (matchesAny(WORDS.gameplay, normalized)) {
-      return { gta: true, bucket: 'gameplay' };
+    const played = firstMatch(WORDS.gameplay, normalized);
+
+    if (played) {
+      return { gta: true, bucket: 'gameplay', why: `"${played}"` };
     }
 
     return { gta: true, bucket: 'content', kind: kindOf(normalized) };

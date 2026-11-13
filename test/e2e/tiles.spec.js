@@ -403,3 +403,24 @@ test('a hidden story card says which word flagged it, and the page element recor
     }),
   ).toBe('');
 });
+
+test('a hidden gameplay card says which word made it gameplay', async ({ openFixture }) => {
+  const page = await openFixture();
+
+  await addTile(page, TAG, 'Rockstar had GTAVI at 60fps but removed all of the cars');
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
+
+  const shown = await page.evaluate(() => {
+    return {
+      kind: document.querySelector('.gv-card__kind').dataset.kind,
+      why: document.querySelector('.gv-card__why').dataset.why,
+    };
+  });
+
+  expect(shown.kind).toBe('Gameplay spoiler');
+  expect(shown.why).toContain('cars');
+});
