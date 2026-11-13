@@ -192,3 +192,91 @@ test('words in neighbouring elements with no space between them are still read a
     })
     .toBe('blocked');
 });
+
+// The speed-up skips a tile whose text did not change, but an attribute change (not part of textContent) must still count.
+test('a change only in an aria-label is still judged', async ({ openFixture }) => {
+  const page = await openFixture();
+
+  await page.evaluate(() => {
+    const tile = document.createElement('ytd-rich-item-renderer');
+
+    tile.innerHTML = '<a id="link" aria-label="Cooking pasta">watch</a>';
+    document.getElementById('feed').append(tile);
+  });
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('ok');
+
+  await page.evaluate(() => {
+    document.getElementById('link').setAttribute('aria-label', 'GTA 6 ending explained');
+  });
+  await expect
+    .poll(() => {
+      return stateOf(page, 0);
+    })
+    .toBe('blocked');
+});
+
+test('hundreds of tiles added while text churns elsewhere are all judged, and none leaks', async ({ openFixture }) => {
+  const page = await openFixture();
+
+  await page.evaluate(() => {
+    window.__leaks = 0;
+
+    const sample = () => {
+      for (const el of document.getElementById('feed').children) {
+        const unmarked = !el.hasAttribute('data-gv-ok') && !el.hasAttribute('data-gv-blocked');
+
+        if (unmarked && getComputedStyle(el).opacity !== '0') {
+          window.__leaks++;
+        }
+      }
+
+      requestAnimationFrame(sample);
+    };
+
+    requestAnimationFrame(sample);
+
+    const feed = document.getElementById('feed');
+    let added = 0;
+
+    return new Promise(resolve => {
+      const step = () => {
+        for (let i = 0; i < 10 && added < 300; i++, added++) {
+          const tile = document.createElement('ytd-rich-item-renderer');
+
+          tile.textContent = added % 3 === 0 ? `GTA 6 ending number ${added}` : `Cooking video ${added}`;
+          feed.append(tile);
+        }
+
+        if (added < 300) {
+          requestAnimationFrame(step);
+        } else {
+          resolve();
+        }
+      };
+
+      requestAnimationFrame(step);
+    });
+  });
+  await page.waitForTimeout(500);
+
+  const result = await page.evaluate(() => {
+    const tiles = [...document.getElementById('feed').children];
+
+    return {
+      total: tiles.length,
+      blocked: tiles.filter(t => {
+        return t.hasAttribute('data-gv-blocked');
+      }).length,
+      ok: tiles.filter(t => {
+        return t.hasAttribute('data-gv-ok');
+      }).length,
+      leaks: window.__leaks,
+    };
+  });
+
+  expect(result).toEqual({ total: 300, blocked: 100, ok: 200, leaks: 0 });
+});

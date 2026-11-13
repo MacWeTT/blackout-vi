@@ -31,7 +31,7 @@
 
     let stamp = 0; // bumped on settings change so cached verdicts are recomputed
     const paused = new Set();
-    const dirty = new Set();
+    const dirty = new Map(); // tile -> true when an attribute changed (its text must be re-read for sure)
     let hooks = {};
 
     // Publishes a blocked card's size to the CSS (--gv-w, --gv-h) so its logo and text scale with it.
@@ -179,10 +179,18 @@
       resumeIn(element);
     };
 
-    const check = element => {
+    const check = (element, force = false) => {
       const { level, panic, mode } = settings;
 
       if (level === 'off' || !element.isConnected) {
+        return;
+      }
+
+      // Fast path for the backstop sweep and for churn inside a tile: same text, same settings, nothing to do.
+      // An attribute change (aria-label, href...) forces a full re-read because textContent does not show it.
+      const raw = element.textContent;
+
+      if (!force && element.__gvStamp === stamp && element.__gvRaw === raw) {
         return;
       }
 
@@ -222,9 +230,18 @@
 
       element.__gvSig = signature;
       element.__gvStamp = stamp;
+      element.__gvRaw = raw;
     };
 
-    const collect = node => {
+    const queue = (tile, force) => {
+      const top = outer(tile);
+
+      dirty.set(top, dirty.get(top) || force);
+    };
+
+    // deep: the node was just added, so look for tiles inside it. Otherwise only the tile it belongs to matters:
+    // scanning a whole container on every record made a long feed cost more with every tile added.
+    const collect = (node, force, deep) => {
       const element = node.nodeType === 1 ? node : node.parentElement;
 
       if (!element) {
@@ -234,18 +251,28 @@
       const up = element.closest(TILES);
 
       if (up) {
-        dirty.add(outer(up));
+        queue(up, force);
       }
 
-      for (const tile of element.querySelectorAll(TILES)) {
-        dirty.add(outer(tile));
+      if (deep) {
+        for (const tile of element.querySelectorAll(TILES)) {
+          queue(tile, force);
+        }
       }
+    };
+
+    // our own card, toast and overlay change the DOM too; reacting to them would only make more work
+    const OURS = '.gv-card,#gv-toast,#gv-overlay';
+    const isOurs = node => {
+      return node.nodeType === 1
+        ? node.matches(OURS) || Boolean(node.closest(OURS))
+        : Boolean(node.parentElement?.closest(OURS));
     };
 
     const flush = () => {
       if (settings.level !== 'off') {
-        for (const element of dirty) {
-          check(element);
+        for (const [element, force] of dirty) {
+          check(element, force);
         }
       }
 
@@ -256,13 +283,22 @@
     // Runs as a microtask right after the DOM change, so a tile is classified before it can paint.
     const handleMutations = records => {
       for (const record of records) {
-        if (record.type === 'childList') {
-          for (const node of record.addedNodes) {
-            collect(node);
-          }
+        if (isOurs(record.target)) {
+          continue;
         }
 
-        collect(record.target);
+        if (record.type === 'childList') {
+          for (const node of record.addedNodes) {
+            if (!isOurs(node)) {
+              collect(node, false, true);
+            }
+          }
+
+          collect(record.target, false, false);
+        } else {
+          // attributes feed the text we read (aria-label, title, alt), so they force a full re-read
+          collect(record.target, record.type === 'attributes', false);
+        }
       }
 
       flush();

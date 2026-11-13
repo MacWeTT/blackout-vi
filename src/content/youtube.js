@@ -108,8 +108,11 @@ GV.engine.start({
       const { level, panic, mode } = api.settings();
 
       if (level === 'off' || location.pathname !== '/watch') {
-        watch = { v: null, prev: watch.title, title: watch.title, r: null, shown: false };
-        applyWatch(null);
+        // nothing to undo on a page that was never a watch page; this runs on every DOM change
+        if (watchState !== null || watch.v !== null) {
+          watch = { v: null, prev: watch.title, title: watch.title, r: null, shown: false };
+          applyWatch(null);
+        }
 
         return;
       }
